@@ -1,4 +1,3 @@
+openai>=1.0.0
 streamlit
-pandas
-openai==0.28
-spotipy
+requests

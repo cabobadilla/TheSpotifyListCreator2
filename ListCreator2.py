@@ -78,7 +78,7 @@ def generate_playlist_details(mood, genres):
     Generate a playlist name, description, and 20 songs that connect with the mood and genres provided.
     ChatGPT will act as a DJ curating songs that align with the mood.
     """
-    openai.api_key = OPENAI_API_KEY
+    client = openai.OpenAI(api_key=OPENAI_API_KEY)
     messages = [
         {
             "role": "system",
@@ -98,7 +98,7 @@ def generate_playlist_details(mood, genres):
         },
     ]
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=messages,
             max_tokens=750,
