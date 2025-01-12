@@ -261,7 +261,7 @@ def main():
         with col1:
             hidden_gems = st.checkbox("💎 Hidden Gems", help="Include lesser-known tracks in your playlist")
         with col2:
-            discover_new = st.checkbox("🆕 Discover New Music", help="Include recent tracks from the last 3-5 years")
+            discover_new = st.checkbox("🆕 New Music", help="Include recent tracks from the last 3 years")
 
         if st.button("🎵 Generate and Create Playlist 🎵"):
             if user_id and mood and genres:
