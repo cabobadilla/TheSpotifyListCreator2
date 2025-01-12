@@ -263,12 +263,10 @@ def main():
                     # Create two columns for better visualization
                     col1, col2 = st.columns([1, 4])
                     with col1:
-                        st.write("**Leyenda:**")
-                        st.write("⭐ = Top Hit")
-                        st.write("💎 = Hidden Gem")
+                        st.write("**Leyenda:** ⭐ = Top Hit | 💎 = Hidden Gem")
                     
                     track_uris = []
-                    for song in songs:
+                    for idx, song in enumerate(songs, 1):
                         title = song['title']
                         artist = song['artist']
                         is_hidden_gem = song.get('is_hidden_gem', False)
@@ -277,7 +275,7 @@ def main():
                         if "tracks" in search_response and search_response["tracks"]["items"]:
                             track_uris.append(search_response["tracks"]["items"][0]["uri"])
                             icon = "💎" if is_hidden_gem else "⭐"
-                            st.write(f"**{title}** - {artist} {icon}")
+                            st.write(f"{idx}. **{title}** - {artist} {icon}")
 
                     if track_uris:
                         playlist_response = create_playlist(token, user_id, name, description)
