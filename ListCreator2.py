@@ -5,6 +5,17 @@ import requests
 from urllib.parse import urlencode
 from typing import Literal
 
+# Initialize session state
+def init_session_state():
+    if "page" not in st.session_state:
+        st.session_state.page = "auth"
+    if "playlist_data" not in st.session_state:
+        st.session_state.playlist_data = {}
+
+# Function to change pages
+def change_page(page: Literal["auth", "define", "generate"]):
+    st.session_state.page = page
+
 # Estilo de Spotify (colores verde y negro)
 st.markdown(
     '''
