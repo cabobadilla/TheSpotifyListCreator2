@@ -349,22 +349,44 @@ def define_playlist_page():
                 unsafe_allow_html=True
             )
         
+        # Button container with custom CSS for button layout
+        st.markdown(
+            """
+            <style>
+            .button-container {
+                display: flex;
+                justify-content: center;
+                gap: 20px;
+                margin-top: 20px;
+            }
+            .button-container .stButton button {
+                width: 200px;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+        
         col3, col4, col5 = st.columns([1, 2, 1])
         with col4:
-            if st.button("← Back"):
-                change_page("auth")
-            if st.button("Generate Playlist →", type="primary"):
-                if user_id and mood and genres:
-                    st.session_state.playlist_data = {
-                        "user_id": user_id,
-                        "mood": mood,
-                        "genres": genres,
-                        "hidden_gems": hidden_gems,
-                        "discover_new": discover_new
-                    }
-                    change_page("generate")
-                else:
-                    st.warning("⚠️ Please complete all required fields")
+            left_col, right_col = st.columns(2)
+            with left_col:
+                if st.button("← Back", use_container_width=True):
+                    change_page("auth")
+            with right_col:
+                if st.button("Generate Playlist →", type="primary", use_container_width=True):
+                    if user_id and mood and genres:
+                        st.session_state.playlist_data = {
+                            "user_id": user_id,
+                            "mood": mood,
+                            "genres": genres,
+                            "hidden_gems": hidden_gems,
+                            "discover_new": discover_new
+                        }
+                        change_page("generate")
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ Please complete all required fields")
 
 def main():
     init_session_state()
