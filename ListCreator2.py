@@ -277,7 +277,7 @@ def main():
                         if "tracks" in search_response and search_response["tracks"]["items"]:
                             track_uris.append(search_response["tracks"]["items"][0]["uri"])
                             icon = "💎" if is_hidden_gem else "⭐"
-                            st.write(f"{icon} **{title}** - {artist}")
+                            st.write(f"**{title}** - {artist} {icon}")
 
                     if track_uris:
                         playlist_response = create_playlist(token, user_id, name, description)
