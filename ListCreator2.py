@@ -348,14 +348,36 @@ def generate_playlist_page():
             for idx, song in enumerate(songs, 1):
                 st.write(f"{idx}. **{song['title']}** - {song['artist']} ({song['year']})")
             
-            # Optionally, add a button to create the playlist on Spotify
-            if st.button("Create Playlist on Spotify"):
-                user_id = data["user_id"]
-                playlist_response = create_playlist(st.session_state.access_token, user_id, name, description)
-                if "id" in playlist_response:
-                    st.success("✅ Playlist created successfully on Spotify!")
-                else:
-                    st.error("❌ Failed to create playlist on Spotify.")
+            # Button container for navigation
+            st.markdown(
+                """
+                <style>
+                .button-container {
+                    display: flex;
+                    justify-content: center;
+                    gap: 20px;
+                    margin-top: 20px;
+                }
+                .button-container .stButton button {
+                    width: 200px;  /* Set a fixed width for buttons */
+                }
+                </style>
+                """,
+                unsafe_allow_html=True
+            )
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("← Back to Definition", use_container_width=True):
+                    change_page("define")
+            with col2:
+                if st.button("Create Playlist on Spotify", use_container_width=True):
+                    user_id = data["user_id"]
+                    playlist_response = create_playlist(st.session_state.access_token, user_id, name, description)
+                    if "id" in playlist_response:
+                        st.success("✅ Playlist created successfully on Spotify!")
+                    else:
+                        st.error("❌ Failed to create playlist on Spotify.")
         else:
             st.error("❌ Failed to generate playlist details.")
     else:
