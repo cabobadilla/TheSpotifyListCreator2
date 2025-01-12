@@ -11,6 +11,8 @@ def init_session_state():
         st.session_state.page = "auth"
     if "playlist_data" not in st.session_state:
         st.session_state.playlist_data = {}
+    if "access_token" not in st.session_state:
+        st.session_state.access_token = None
 
 # Function to change pages
 def change_page(page: Literal["auth", "define", "generate"]):
