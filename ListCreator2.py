@@ -435,7 +435,6 @@ def define_playlist_page():
                     "discover_new": discover_new
                 }
                 change_page("generate")
-                st.experimental_rerun()  # Ensure the page refreshes
             else:
                 st.warning("⚠️ Please complete all required fields")
         
