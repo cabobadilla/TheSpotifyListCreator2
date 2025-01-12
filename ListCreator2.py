@@ -315,6 +315,57 @@ def generate_playlist_page():
     if st.button("← Back to Definition"):
         change_page("define")
 
+def define_playlist_page():
+    st.markdown("<h1>Define Your Playlist</h1>", unsafe_allow_html=True)
+    
+    with st.container():
+        config = load_config()  # Load configuration for moods and genres
+        
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            user_id = st.text_input("🎤 Enter your Spotify user ID", placeholder="Spotify Username")
+            mood = st.selectbox("😊 Select your desired mood", config["moods"])
+            genres = st.multiselect("🎸 Select music genres", config["genres"])
+            
+            col_a, col_b = st.columns(2)
+            with col_a:
+                hidden_gems = st.checkbox("💎 Hidden Gems", help="Include lesser-known tracks")
+            with col_b:
+                discover_new = st.checkbox("🆕 New Music", help="Include recent tracks")
+        
+        with col2:
+            st.markdown(
+                """
+                <div class='step-container'>
+                    <h4>Tips</h4>
+                    <ul>
+                        <li>Choose up to 3 genres for better results</li>
+                        <li>Hidden Gems mode finds unique tracks</li>
+                        <li>New Music focuses on recent releases</li>
+                    </ul>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        
+        col3, col4, col5 = st.columns([1, 2, 1])
+        with col4:
+            if st.button("← Back"):
+                change_page("auth")
+            if st.button("Generate Playlist →", type="primary"):
+                if user_id and mood and genres:
+                    st.session_state.playlist_data = {
+                        "user_id": user_id,
+                        "mood": mood,
+                        "genres": genres,
+                        "hidden_gems": hidden_gems,
+                        "discover_new": discover_new
+                    }
+                    change_page("generate")
+                else:
+                    st.warning("⚠️ Please complete all required fields")
+
 def main():
     init_session_state()
     
