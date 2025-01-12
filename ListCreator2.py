@@ -91,9 +91,9 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
         "Your job is to act as a DJ and create a playlist that connects deeply with the given mood and genres. "
         "Generate a playlist name (max 4 words), a description (max 20 words), and 25 songs. "
         "Ensure all song names are free from special characters to maintain JSON format compatibility. "
-        "Each song must include 'title', 'artist', 'is_hidden_gem' (boolean), and 'is_new_music' (boolean). "
+        "Each song MUST include 'title', 'artist', 'year' (integer), 'is_hidden_gem' (boolean), and 'is_new_music' (boolean). "
         'Respond in JSON format with the following structure: '
-        '{ "name": "...", "description": "...", "songs": [{"title": "...", "artist": "...", "is_hidden_gem": boolean, "is_new_music": boolean}] }'
+        '{ "name": "...", "description": "...", "songs": [{"title": "...", "artist": "...", "year": integer, "is_hidden_gem": boolean, "is_new_music": boolean}] }'
     )
     
     if hidden_gems:
