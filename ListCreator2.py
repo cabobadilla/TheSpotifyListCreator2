@@ -133,7 +133,7 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=messages,
-            max_tokens=1500,
+            max_tokens=2000,
             temperature=0.8 if hidden_gems or discover_new else 0.7,
         )
         playlist_response = response.choices[0].message.content.strip()
