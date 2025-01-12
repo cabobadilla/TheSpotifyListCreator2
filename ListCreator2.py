@@ -180,7 +180,7 @@ def add_tracks_to_playlist(token, playlist_id, track_uris):
 def main():
     st.markdown(
         """
-        <h1 style='text-align: center;'>🎵 Spotify Playlist Creator 🎵</h1>
+        <h1 style='text-align: center;'>🎵 Spotify Playlist Creator 2.0 🎵</h1>
         <h3 style='text-align: center;'>Create personalized playlists based on your mood and favorite genre</h3>
         """,
         unsafe_allow_html=True
