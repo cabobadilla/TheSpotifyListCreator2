@@ -252,8 +252,11 @@ def main():
         user_id = st.text_input("🎤 Enter your Spotify user ID", placeholder="Spotify Username")
         mood = st.selectbox("😊 Select your desired mood", config["moods"])
         genres = st.multiselect("🎸 Select music genres", config["genres"])
-        hidden_gems = st.checkbox("💎 Hidden Gems", help="Include lesser-known tracks in your playlist")
-        discover_new = st.checkbox("🆕 Discover New Music", help="Include recent tracks from the last 3-5 years")
+        col1, col2 = st.columns(2)
+        with col1:
+            hidden_gems = st.checkbox("💎 Hidden Gems", help="Include lesser-known tracks in your playlist")
+        with col2:
+            discover_new = st.checkbox("🆕 Discover New Music", help="Include recent tracks from the last 3-5 years")
 
         if st.button("🎵 Generate and Create Playlist 🎵"):
             if user_id and mood and genres:
@@ -265,19 +268,26 @@ def main():
                     st.info(f"📜 Generated description: {description}")
                     st.success(f"🎵 Generated songs:")
                     
-                    st.markdown("<div style='margin-bottom: 10px'><b>Legend:</b> ⭐ = Top Hit | 💎 = Hidden Gem</div>", unsafe_allow_html=True)
+                    st.markdown("<div style='margin-bottom: 10px'><b>Legend:</b> ⭐ = Top Hit | 💎 = Hidden Gem | 🆕 = New Music</div>", unsafe_allow_html=True)
                     
                     track_uris = []
                     for idx, song in enumerate(songs, 1):
                         title = song['title']
                         artist = song['artist']
                         is_hidden_gem = song.get('is_hidden_gem', False)
+                        is_new_music = song.get('is_new_music', False)
                         
                         search_response = search_tracks(st.session_state.access_token, title, artist)
                         if "tracks" in search_response and search_response["tracks"]["items"]:
                             track_uris.append(search_response["tracks"]["items"][0]["uri"])
-                            icon = "💎" if is_hidden_gem else "⭐"
-                            st.write(f"{idx}. **{title}** - {artist} {icon}")
+                            icons = []
+                            if is_hidden_gem:
+                                icons.append("💎")
+                            if is_new_music:
+                                icons.append("🆕")
+                            if not icons:
+                                icons.append("⭐")
+                            st.write(f"{idx}. **{title}** - {artist} {' '.join(icons)}")
 
                     if track_uris:
                         playlist_response = create_playlist(st.session_state.access_token, user_id, name, description)
