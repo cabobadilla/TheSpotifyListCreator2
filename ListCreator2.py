@@ -437,8 +437,10 @@ def define_playlist_page():
         
         # Create a button container
         st.markdown('<div class="button-container">', unsafe_allow_html=True)
+        
         if st.button("← Back", use_container_width=True):
             change_page("auth")
+        
         if st.button("Generate Playlist →", type="primary", use_container_width=True):
             if user_id and mood and genres:
                 st.session_state.playlist_data = {
@@ -449,8 +451,10 @@ def define_playlist_page():
                     "discover_new": discover_new
                 }
                 change_page("generate")
+                st.experimental_rerun()  # Ensure the page refreshes
             else:
                 st.warning("⚠️ Please complete all required fields")
+        
         st.markdown('</div>', unsafe_allow_html=True)
 
 def main():
