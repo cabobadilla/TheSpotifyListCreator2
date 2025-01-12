@@ -107,7 +107,7 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
     if discover_new:
         system_content += (
             "Since discover new music mode is activated, 40% of the songs should be from "
-            "the last 3 years (2021-2024). Mark these songs with 'is_new_music' flag. "
+            "2023 onwards. Mark these songs with 'is_new_music' flag. "
             "The description should mention that this includes recent releases. "
         )
 
@@ -178,6 +178,10 @@ def validate_and_clean_json(raw_response):
         for song in playlist_data["songs"]:
             if 'is_new_music' not in song:
                 song['is_new_music'] = False
+    if not all("title" in song and "artist" in song and "year" in song for song in playlist_data["songs"]):
+        raise ValueError("Songs do not contain required fields ('title', 'artist', 'year').")
+    if not all(isinstance(song.get('year', 0), int) for song in playlist_data["songs"]):
+        raise ValueError("Year must be an integer value.")
     return playlist_data["name"], playlist_data["description"], playlist_data["songs"]
 
 # Function to search for songs on Spotify
@@ -292,7 +296,7 @@ def main():
                                 icons.append("🆕")
                             if not icons:
                                 icons.append("⭐")
-                            st.write(f"{idx}. **{title}** - {artist} ({song['year']}) {' '.join(icons)}")
+                            st.write(f"{idx}. **{title}** - {artist} ({song.get('year', 'N/A')}) {' '.join(icons)}")
 
                     if track_uris:
                         playlist_response = create_playlist(st.session_state.access_token, user_id, name, description)
