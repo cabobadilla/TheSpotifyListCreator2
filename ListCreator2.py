@@ -292,7 +292,7 @@ def main():
                                 icons.append("🆕")
                             if not icons:
                                 icons.append("⭐")
-                            st.write(f"{idx}. **{title}** - {artist} {' '.join(icons)}")
+                            st.write(f"{idx}. **{title}** - {artist} ({song['year']}) {' '.join(icons)}")
 
                     if track_uris:
                         playlist_response = create_playlist(st.session_state.access_token, user_id, name, description)
