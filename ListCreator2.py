@@ -75,7 +75,7 @@ def get_auth_url(client_id, redirect_uri, scopes):
 # Function to generate songs, playlist name, and description using ChatGPT
 def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=False):
     """
-    Generate a playlist name, description, and 20 songs that connect with the mood and genres provided.
+    Generate a playlist name, description, and 25 songs that connect with the mood and genres provided.
     ChatGPT will act as a DJ curating songs that align with the mood.
     
     Args:
@@ -89,7 +89,7 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
     system_content = (
         "You are a music expert and DJ who curates playlists based on mood and genres. "
         "Your job is to act as a DJ and create a playlist that connects deeply with the given mood and genres. "
-        "Generate a playlist name (max 4 words), a description (max 20 words), and 15 songs. "
+        "Generate a playlist name (max 4 words), a description (max 20 words), and 25 songs. "
         "Ensure all song names are free from special characters to maintain JSON format compatibility. "
         "Each song must include 'title', 'artist', 'is_hidden_gem' (boolean), and 'is_new_music' (boolean). "
         'Respond in JSON format with the following structure: '
@@ -129,7 +129,7 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=messages,
-            max_tokens=750,
+            max_tokens=1000,
             temperature=0.8 if hidden_gems or discover_new else 0.7,
         )
         playlist_response = response.choices[0].message.content.strip()
