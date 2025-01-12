@@ -245,8 +245,14 @@ def create_playlist(token, user_id, name, description):
     url = f"https://api.spotify.com/v1/users/{user_id}/playlists"
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     payload = {"name": name, "description": description, "public": False}
+    
     response = requests.post(url, headers=headers, json=payload)
-    return response.json()
+    
+    if response.status_code == 201:  # HTTP 201 Created
+        return response.json()  # Return the created playlist data
+    else:
+        st.error(f"❌ Error creating playlist: {response.json().get('error', {}).get('message', 'Unknown error')}")
+        return None
 
 # Function to add songs to a playlist on Spotify
 def add_tracks_to_playlist(token, playlist_id, track_uris):
@@ -331,13 +337,11 @@ def combined_auth_and_define_page():
 def generate_playlist_page():
     st.markdown("<h1>Generate Playlist</h1>", unsafe_allow_html=True)
     
-    # Use data from session state
     data = st.session_state.playlist_data
     
     if data:
         st.info("🎧 Generating your playlist...")
         
-        # Call the function to generate playlist details
         name, description, songs = generate_playlist_details(data["mood"], data["genres"], data["hidden_gems"], data["discover_new"])
         
         if name and description and songs:
@@ -348,36 +352,16 @@ def generate_playlist_page():
             for idx, song in enumerate(songs, 1):
                 st.write(f"{idx}. **{song['title']}** - {song['artist']} ({song['year']})")
             
-            # Button container for navigation
-            st.markdown(
-                """
-                <style>
-                .button-container {
-                    display: flex;
-                    justify-content: center;
-                    gap: 20px;
-                    margin-top: 20px;
-                }
-                .button-container .stButton button {
-                    width: 200px;  /* Set a fixed width for buttons */
-                }
-                </style>
-                """,
-                unsafe_allow_html=True
-            )
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("← Back to Definition", use_container_width=True):
-                    change_page("define")
-            with col2:
-                if st.button("Create Playlist on Spotify", use_container_width=True):
-                    user_id = data["user_id"]
-                    playlist_response = create_playlist(st.session_state.access_token, user_id, name, description)
-                    if "id" in playlist_response:
-                        st.success("✅ Playlist created successfully on Spotify!")
-                    else:
-                        st.error("❌ Failed to create playlist on Spotify.")
+            # Create the playlist on Spotify
+            if st.button("Create Playlist on Spotify"):
+                user_id = data["user_id"]
+                playlist_response = create_playlist(st.session_state.access_token, user_id, name, description)
+                
+                if playlist_response and "id" in playlist_response:
+                    st.success("✅ Playlist created successfully on Spotify!")
+                    st.write(f"🔗 [Open your playlist here](https://open.spotify.com/playlist/{playlist_response['id']})")
+                else:
+                    st.error("❌ Failed to create playlist on Spotify.")
         else:
             st.error("❌ Failed to generate playlist details.")
     else:
