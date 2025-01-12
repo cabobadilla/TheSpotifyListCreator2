@@ -259,14 +259,25 @@ def main():
                     st.success(f"✅ Nombre generado: {name}")
                     st.info(f"📜 Descripción generada: {description}")
                     st.success(f"🎵 Canciones generadas:")
+                    
+                    # Create two columns for better visualization
+                    col1, col2 = st.columns([1, 4])
+                    with col1:
+                        st.write("**Leyenda:**")
+                        st.write("⭐ = Top Hit")
+                        st.write("💎 = Hidden Gem")
+                    
                     track_uris = []
                     for song in songs:
                         title = song['title']
                         artist = song['artist']
+                        is_hidden_gem = song.get('is_hidden_gem', False)
+                        
                         search_response = search_tracks(token, title, artist)
                         if "tracks" in search_response and search_response["tracks"]["items"]:
                             track_uris.append(search_response["tracks"]["items"][0]["uri"])
-                            st.write(f"- **{title}** - {artist}")
+                            icon = "💎" if is_hidden_gem else "⭐"
+                            st.write(f"{icon} **{title}** - {artist}")
 
                     if track_uris:
                         playlist_response = create_playlist(token, user_id, name, description)
