@@ -267,15 +267,17 @@ def main():
                         artist = song['artist']
                         is_hidden_gem = song.get('is_hidden_gem', False)
                         
-                        search_response = search_tracks(token, title, artist)
+                        search_response = search_tracks(st.session_state.access_token, title, artist)
                         if "tracks" in search_response and search_response["tracks"]["items"]:
                             track_uris.append(search_response["tracks"]["items"][0]["uri"])
                             icon = "💎" if is_hidden_gem else "⭐"
                             st.write(f"{idx}. **{title}** - {artist} {icon}")
 
                     if track_uris:
-                        playlist_response = create_playlist(token, user_id, name, description)
+                        playlist_response = create_playlist(st.session_state.access_token, user_id, name, description)
                         if "id" in playlist_response:
+                            playlist_id = playlist_response["id"]
+                            add_tracks_to_playlist(st.session_state.access_token, playlist_id, track_uris)
                             st.success(f"✅ Playlist '{name}' successfully created on Spotify.")
                         else:
                             st.error("❌ Could not create playlist on Spotify.")
