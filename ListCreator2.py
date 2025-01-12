@@ -73,7 +73,7 @@ def get_auth_url(client_id, redirect_uri, scopes):
     return f"{auth_url}?{urlencode(params)}"
 
 # Function to generate songs, playlist name, and description using ChatGPT
-def generate_playlist_details(mood, genres, hidden_gems=False):
+def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=False):
     """
     Generate a playlist name, description, and 20 songs that connect with the mood and genres provided.
     ChatGPT will act as a DJ curating songs that align with the mood.
@@ -82,10 +82,10 @@ def generate_playlist_details(mood, genres, hidden_gems=False):
         mood (str): The desired mood for the playlist
         genres (list): List of music genres
         hidden_gems (bool): Whether to include lesser-known tracks
+        discover_new (bool): Whether to include recent tracks (2020-2024)
     """
     client = openai.OpenAI(api_key=OPENAI_API_KEY)
     
-    # Modify the system message based on hidden_gems
     system_content = (
         "You are a music expert and DJ who curates playlists based on mood and genres. "
         "Your job is to act as a DJ and create a playlist that connects deeply with the given mood and genres. "
@@ -99,13 +99,12 @@ def generate_playlist_details(mood, genres, hidden_gems=False):
             "40% of songs should be lesser-known hidden gems in these genres. "
         )
     
-    system_content += (
-        "Generate a playlist name (max 4 words), a description (max 20 words), and 20 songs. "
-        "Ensure all song names are free from special characters to maintain JSON format compatibility. "
-        "Each song must include 'title', 'artist', 'is_hidden_gem' (boolean), and 'is_new_music' (boolean). "
-        "Respond in JSON format with the following structure: "
-        "{ 'name': '...', 'description': '...', 'songs': [{'title': '...', 'artist': '...', 'is_hidden_gem': boolean, 'is_new_music': boolean}] }"
-    )
+    if discover_new:
+        system_content += (
+            "Since discover new music mode is activated, 40% of the songs should be from "
+            "the last 3-5 years (2020-2024). Mark these songs with 'is_new_music' flag. "
+            "The description should mention that this includes recent releases. "
+        )
 
     messages = [
         {
@@ -116,7 +115,8 @@ def generate_playlist_details(mood, genres, hidden_gems=False):
             "role": "user",
             "content": f"Create a playlist for the mood '{mood}' and genres {', '.join(genres)}. "
                       f"Make sure the songs align with the mood and genres. "
-                      f"{'Include 40% hidden gems and lesser-known songs.' if hidden_gems else ''}"
+                      f"{'Include 40% hidden gems and lesser-known songs.' if hidden_gems else ''} "
+                      f"{'Include 40% songs from 2020-2024.' if discover_new else ''}"
         },
     ]
     
@@ -125,18 +125,18 @@ def generate_playlist_details(mood, genres, hidden_gems=False):
             model="gpt-3.5-turbo",
             messages=messages,
             max_tokens=750,
-            temperature=0.8 if hidden_gems else 0.7,  # Slightly higher temperature for more creativity
+            temperature=0.8 if hidden_gems or discover_new else 0.7,
         )
         playlist_response = response.choices[0].message.content.strip()
 
         try:
             return validate_and_clean_json(playlist_response)
         except ValueError as e:
-            st.error(f"❌ Error al procesar la respuesta de ChatGPT: {e}")
+            st.error(f"❌ Error processing ChatGPT response: {e}")
             return None, None, []
 
     except Exception as e:
-        st.error(f"❌ Error al generar la playlist: {e}")
+        st.error(f"❌ Error generating playlist: {e}")
         return None, None, []
 
 # Function to validate and clean JSON
