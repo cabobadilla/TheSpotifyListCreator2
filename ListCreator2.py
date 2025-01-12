@@ -121,7 +121,8 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
             "content": f"Create a playlist for the mood '{mood}' and genres {', '.join(genres)}. "
                       f"Make sure the songs align with the mood and genres. "
                       f"{'Include 40% hidden gems and lesser-known songs.' if hidden_gems else ''} "
-                      f"{'Include 40% songs from 2022-2024.' if discover_new else ''}"
+                      f"{'Include 40% songs from 2023-2024 with accurate release years.' if discover_new else ''} "
+                      f"Ensure each song has an accurate release year as an integer."
         },
     ]
     
