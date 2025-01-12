@@ -102,8 +102,9 @@ def generate_playlist_details(mood, genres, hidden_gems=False):
     system_content += (
         "Generate a playlist name (max 4 words), a description (max 20 words), and 20 songs. "
         "Ensure all song names are free from special characters to maintain JSON format compatibility. "
-        "Each song must include 'title' and 'artist'. Respond in JSON format with the following structure: "
-        "{ 'name': '...', 'description': '...', 'songs': [{'title': '...', 'artist': '...'}] }"
+        "Each song must include 'title', 'artist', and 'is_hidden_gem' (boolean). "
+        "Respond in JSON format with the following structure: "
+        "{ 'name': '...', 'description': '...', 'songs': [{'title': '...', 'artist': '...', 'is_hidden_gem': boolean}] }"
     )
 
     messages = [
