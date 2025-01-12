@@ -107,7 +107,7 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
     if discover_new:
         system_content += (
             "Since discover new music mode is activated, 40% of the songs should be from "
-            "the last 3-5 years (2020-2024). Mark these songs with 'is_new_music' flag. "
+            "the last 3 years (2021-2024). Mark these songs with 'is_new_music' flag. "
             "The description should mention that this includes recent releases. "
         )
 
