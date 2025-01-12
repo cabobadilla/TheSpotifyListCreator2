@@ -81,11 +81,12 @@ def generate_playlist_details(mood, genres):
     client = openai.OpenAI(api_key=OPENAI_API_KEY)
     messages = [
         {
-            "role": "system",
+            "role": "system", 
             "content": (
                 "You are a music expert and DJ who curates playlists based on mood and genres. "
                 "Your job is to act as a DJ and create a playlist that connects deeply with the given mood and genres. "
                 "Generate a playlist name (max 4 words), a description (max 20 words), and 20 songs. "
+                "If hidden_gems is enabled, 40% of songs should be lesser-known hidden gems in these genres. "
                 "Ensure all song names are free from special characters to maintain JSON format compatibility. "
                 "Each song must include 'title' and 'artist'. Respond in JSON format with the following structure: "
                 "{ 'name': '...', 'description': '...', 'songs': [{'title': '...', 'artist': '...'}] }"
@@ -94,7 +95,8 @@ def generate_playlist_details(mood, genres):
         {
             "role": "user",
             "content": f"Create a playlist for the mood '{mood}' and genres {', '.join(genres)}. "
-                       f"Make sure the songs align with the mood and genres."
+                      f"Make sure the songs align with the mood and genres. "
+                      f"{'Include 40% hidden gems and lesser-known songs.' if hidden_gems else ''}"
         },
     ]
     try:
@@ -221,11 +223,12 @@ def main():
         user_id = st.text_input("🎤 Introduce tu ID de usuario de Spotify", placeholder="Usuario de Spotify")
         mood = st.selectbox("😊 Selecciona tu estado de ánimo deseado", config["moods"])
         genres = st.multiselect("🎸 Selecciona los géneros musicales", config["genres"])
+        hidden_gems = st.checkbox("💎 Hidden Gems", help="Include lesser-known tracks in your playlist")
 
         if st.button("🎵 Generar y Crear Lista 🎵"):
             if user_id and mood and genres:
                 st.info("🎧 Generando canciones, nombre y descripción...")
-                name, description, songs = generate_playlist_details(mood, genres)
+                name, description, songs = generate_playlist_details(mood, genres, hidden_gems)
 
                 if name and description and songs:
                     st.success(f"✅ Nombre generado: {name}")
