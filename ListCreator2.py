@@ -253,11 +253,12 @@ def main():
         mood = st.selectbox("😊 Select your desired mood", config["moods"])
         genres = st.multiselect("🎸 Select music genres", config["genres"])
         hidden_gems = st.checkbox("💎 Hidden Gems", help="Include lesser-known tracks in your playlist")
+        discover_new = st.checkbox("🆕 Discover New Music", help="Include recent tracks from the last 3-5 years")
 
         if st.button("🎵 Generate and Create Playlist 🎵"):
             if user_id and mood and genres:
                 st.info("🎧 Generating songs, name and description...")
-                name, description, songs = generate_playlist_details(mood, genres, hidden_gems)
+                name, description, songs = generate_playlist_details(mood, genres, hidden_gems, discover_new)
 
                 if name and description and songs:
                     st.success(f"✅ Generated name: {name}")
