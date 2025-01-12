@@ -245,102 +245,51 @@ def add_tracks_to_playlist(token, playlist_id, track_uris):
     response = requests.post(url, headers=headers, json=payload)
     return response
 
-# Streamlit App
-def main():
+def auth_page():
     st.markdown(
         """
-        <h1 style='text-align: center;'>🎵 Spotify Playlist Creator 2.0 🎵</h1>
-        <h3 style='text-align: center;'>Create personalized playlists based on your mood and favorite genre</h3>
+        <div style='text-align: center;'>
+            <h1>🎵 Spotify Playlist Creator 2.0 🎵</h1>
+            <h3>Create personalized playlists based on your mood and favorite genre</h3>
+        </div>
         """,
         unsafe_allow_html=True
     )
     
-    # Step 1: Authorization
-    st.markdown("<h2 style='color: #1DB954;'>🔑 Authentication</h2>", unsafe_allow_html=True)
-    if "access_token" not in st.session_state:
-        auth_url = get_auth_url(CLIENT_ID, REDIRECT_URI, SCOPES)
-        st.markdown(
-            f"<div style='text-align: center;'><a href='{auth_url}' target='_blank' style='color: #1DB954; font-weight: bold;'>🔑 Login with Spotify</a></div>",
-            unsafe_allow_html=True
-        )
-        query_params = st.query_params
-        if "code" in query_params:
-            code = query_params["code"]
-            token_response = requests.post(
-                "https://accounts.spotify.com/api/token",
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-                data={
-                    "grant_type": "authorization_code",
-                    "code": code,
-                    "redirect_uri": REDIRECT_URI,
-                    "client_id": CLIENT_ID,
-                    "client_secret": CLIENT_SECRET,
-                },
-            ).json()
-            if "access_token" in token_response:
-                st.session_state.access_token = token_response["access_token"]
-                st.success("✅ Authentication completed.")
-            else:
-                st.error("❌ Authentication error.")
-    else:
-        st.success("✅ Already authenticated.")
-
-    # Step 2: Playlist generation
-    if "access_token" in st.session_state:
-        st.markdown("<h2>🎶 Generate and Create Playlist</h2>", unsafe_allow_html=True)
-        user_id = st.text_input("🎤 Enter your Spotify user ID", placeholder="Spotify Username")
-        mood = st.selectbox("😊 Select your desired mood", config["moods"])
-        genres = st.multiselect("🎸 Select music genres", config["genres"])
-        col1, col2 = st.columns(2)
-        with col1:
-            hidden_gems = st.checkbox("💎 Hidden Gems", help="Include lesser-known tracks in your playlist")
-        with col2:
-            discover_new = st.checkbox("🆕 New Music", help="Include recent tracks from the last 3 years")
-
-        if st.button("🎵 Generate and Create Playlist 🎵"):
-            if user_id and mood and genres:
-                st.info("🎧 Generating songs, name and description...")
-                name, description, songs = generate_playlist_details(mood, genres, hidden_gems, discover_new)
-
-                if name and description and songs:
-                    st.success(f"✅ Generated name: {name}")
-                    st.info(f"📜 Generated description: {description}")
-                    st.success(f"🎵 Generated songs:")
-                    
-                    st.markdown("<div style='margin-bottom: 10px'><b>Legend:</b> ⭐ = Top Hit | 💎 = Hidden Gem | 🆕 = New Music</div>", unsafe_allow_html=True)
-                    
-                    track_uris = []
-                    for idx, song in enumerate(songs, 1):
-                        title = song['title']
-                        artist = song['artist']
-                        is_hidden_gem = song.get('is_hidden_gem', False)
-                        is_new_music = song.get('is_new_music', False)
-                        
-                        search_response = search_tracks(st.session_state.access_token, title, artist)
-                        if "tracks" in search_response and search_response["tracks"]["items"]:
-                            track_uris.append(search_response["tracks"]["items"][0]["uri"])
-                            icons = []
-                            if is_hidden_gem:
-                                icons.append("💎")
-                            if is_new_music:
-                                icons.append("🆕")
-                            if not icons:
-                                icons.append("⭐")
-                            year = song.get('year', 'N/A')
-                            st.write(f"{idx}. **{title}** - {artist} ({year}) {' '.join(icons)}")
-
-                    if track_uris:
-                        playlist_response = create_playlist(st.session_state.access_token, user_id, name, description)
-                        if "id" in playlist_response:
-                            playlist_id = playlist_response["id"]
-                            add_tracks_to_playlist(st.session_state.access_token, playlist_id, track_uris)
-                            st.success(f"✅ Playlist '{name}' successfully created on Spotify.")
-                        else:
-                            st.error("❌ Could not create playlist on Spotify.")
+    with st.container():
+        if "access_token" not in st.session_state:
+            auth_url = get_auth_url(CLIENT_ID, REDIRECT_URI, SCOPES)
+            st.markdown(
+                f"<div style='text-align: center;'><a href='{auth_url}' target='_blank' class='spotify-button'>🔑 Login with Spotify</a></div>",
+                unsafe_allow_html=True
+            )
+            
+            # Handle authentication code from URL
+            query_params = st.query_params
+            if "code" in query_params:
+                code = query_params["code"]
+                token_response = requests.post(
+                    "https://accounts.spotify.com/api/token",
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                    data={
+                        "grant_type": "authorization_code",
+                        "code": code,
+                        "redirect_uri": REDIRECT_URI,
+                        "client_id": CLIENT_ID,
+                        "client_secret": CLIENT_SECRET,
+                    },
+                ).json()
+                
+                if "access_token" in token_response:
+                    st.session_state.access_token = token_response["access_token"]
+                    st.success("✅ Authentication completed.")
+                    change_page("define")
                 else:
-                    st.error("❌ Could not generate playlist.")
-            else:
-                st.warning("⚠️ Please complete all fields to create the playlist.")
+                    st.error("❌ Authentication error.")
+        else:
+            st.success("✅ Already authenticated")
+            if st.button("Continue to Playlist Creation", type="primary"):
+                change_page("define")
 
 def generate_playlist_page():
     st.markdown("<h1>Generate Playlist</h1>", unsafe_allow_html=True)
@@ -354,6 +303,76 @@ def generate_playlist_page():
     # Add back button
     if st.button("← Back to Definition"):
         change_page("define")
+
+def main():
+    init_session_state()
+    
+    # Add responsive CSS
+    st.markdown(
+        """
+        <style>
+            /* Base styles */
+            body {
+                background-color: #121212;
+                color: white;
+            }
+            h1, h2, h3 {
+                color: #1DB954;
+                font-weight: bold;
+                text-align: center;
+            }
+            .stButton>button {
+                background-color: #1DB954;
+                color: white;
+                font-size: 16px;
+                border-radius: 25px;
+                padding: 10px 20px;
+            }
+            .stButton>button:hover {
+                background-color: #1ED760;
+            }
+            
+            /* Responsive styles */
+            @media (max-width: 768px) {
+                .stButton>button {
+                    width: 100%;
+                    margin: 5px 0;
+                }
+                .step-container {
+                    padding: 10px;
+                }
+            }
+            
+            /* Custom components */
+            .spotify-button {
+                background-color: #1DB954;
+                color: white;
+                padding: 12px 24px;
+                border-radius: 25px;
+                text-decoration: none;
+                display: inline-block;
+                margin: 10px 0;
+                font-weight: bold;
+            }
+            
+            .step-container {
+                background-color: #2C2C2C;
+                padding: 20px;
+                border-radius: 10px;
+                margin: 20px 0;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    # Route to correct page
+    if st.session_state.page == "auth":
+        auth_page()
+    elif st.session_state.page == "define":
+        define_playlist_page()
+    elif st.session_state.page == "generate":
+        generate_playlist_page()
 
 if __name__ == "__main__":
     main()
