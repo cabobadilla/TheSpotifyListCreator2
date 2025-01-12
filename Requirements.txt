@@ -1,5 +1,0 @@
-streamlit
-requests
-pandas
-openai==0.28
-spotipy
