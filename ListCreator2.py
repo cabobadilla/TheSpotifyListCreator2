@@ -73,10 +73,15 @@ def get_auth_url(client_id, redirect_uri, scopes):
     return f"{auth_url}?{urlencode(params)}"
 
 # Function to generate songs, playlist name, and description using ChatGPT
-def generate_playlist_details(mood, genres):
+def generate_playlist_details(mood, genres, hidden_gems=False):
     """
     Generate a playlist name, description, and 20 songs that connect with the mood and genres provided.
     ChatGPT will act as a DJ curating songs that align with the mood.
+    
+    Args:
+        mood (str): The desired mood for the playlist
+        genres (list): List of music genres
+        hidden_gems (bool): Whether to include lesser-known tracks
     """
     client = openai.OpenAI(api_key=OPENAI_API_KEY)
     messages = [
