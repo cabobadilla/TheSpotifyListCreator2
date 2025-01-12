@@ -256,7 +256,7 @@ def add_tracks_to_playlist(token, playlist_id, track_uris):
     response = requests.post(url, headers=headers, json=payload)
     return response
 
-def auth_page():
+def combined_auth_and_define_page():
     st.markdown(
         """
         <div style='text-align: center;'>
@@ -294,13 +294,39 @@ def auth_page():
                 if "access_token" in token_response:
                     st.session_state.access_token = token_response["access_token"]
                     st.success("✅ Authentication completed.")
-                    change_page("define")
                 else:
                     st.error("❌ Authentication error.")
         else:
             st.success("✅ Already authenticated")
-            if st.button("Continue to Playlist Creation", type="primary"):
-                change_page("define")
+        
+        # Playlist definition section
+        config = load_config()  # Load configuration for moods and genres
+        
+        st.markdown("<h2>Define Your Playlist</h2>", unsafe_allow_html=True)
+        
+        user_id = st.text_input("🎤 Enter your Spotify user ID", placeholder="Spotify Username")
+        mood = st.selectbox("😊 Select your desired mood", config["moods"])
+        genres = st.multiselect("🎸 Select music genres", config["genres"])
+        
+        col_a, col_b = st.columns(2)
+        with col_a:
+            hidden_gems = st.checkbox("💎 Hidden Gems", help="Include lesser-known tracks")
+        with col_b:
+            discover_new = st.checkbox("🆕 New Music", help="Include recent tracks")
+        
+        # Button container for navigation
+        if st.button("Generate Playlist →", type="primary"):
+            if user_id and mood and genres:
+                st.session_state.playlist_data = {
+                    "user_id": user_id,
+                    "mood": mood,
+                    "genres": genres,
+                    "hidden_gems": hidden_gems,
+                    "discover_new": discover_new
+                }
+                change_page("generate")
+            else:
+                st.warning("⚠️ Please complete all required fields")
 
 def generate_playlist_page():
     st.markdown("<h1>Generate Playlist</h1>", unsafe_allow_html=True)
@@ -452,7 +478,7 @@ def main():
     
     # Route to correct page
     if st.session_state.page == "auth":
-        auth_page()
+        combined_auth_and_define_page()
     elif st.session_state.page == "define":
         define_playlist_page()
     elif st.session_state.page == "generate":
