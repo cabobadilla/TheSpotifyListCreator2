@@ -75,7 +75,7 @@ def get_auth_url(client_id, redirect_uri, scopes):
 # Function to generate songs, playlist name, and description using ChatGPT
 def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=False):
     """
-    Generate a playlist name, description, and 15 to 25 songs that connect with the mood and genres provided.
+    Generate a playlist name, description, 15  songs that connect with the mood and genres provided.
     ChatGPT will act as a DJ curating songs that align with the mood.
     
     Args:
@@ -89,7 +89,7 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
     system_content = (
         "You are a music expert and DJ who curates playlists based on mood and genres. "
         "Your job is to act as a DJ and create a playlist that connects deeply with the given mood and genres. "
-        "Generate a playlist name (max 5 words), a description (max 25 words), and min 15 to max 25 songs. "
+        "Generate a playlist name (max 5 words), a description (max 25 words), and 15 songs. "
         "IMPORTANT: Use only basic ASCII characters. No special quotes, apostrophes, or symbols. "
         "Each song MUST include these exact fields with proper JSON formatting: "
         "title (string), artist (string), year (integer), is_hidden_gem (boolean), is_new_music (boolean). "
@@ -111,7 +111,7 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
         system_content += (
             "Since discover new music mode is activated, 50% of the songs should be from "
             "2023 onwards. Mark these songs with 'is_new_music' flag. "
-            "The description should mention that this includes recent releases. "
+            "The name and description should mention that this includes recent releases. "
         )
 
     messages = [
@@ -123,8 +123,8 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
             "role": "user",
             "content": f"Create a playlist for the mood '{mood}' and genres {', '.join(genres)}. "
                       f"Make sure the songs align with the mood and genres. "
-                      f"{'Include 40% hidden gems and lesser-known songs.' if hidden_gems else ''} "
-                      f"{'Include 40% songs from 2023-2024 with accurate release years.' if discover_new else ''} "
+                      f"{'Include 50% hidden gems and lesser-known songs.' if hidden_gems else ''} "
+                      f"{'Include 50% songs from 2023-2024 with accurate release years.' if discover_new else ''} "
                       f"Ensure each song has an accurate release year as an integer."
         },
     ]
