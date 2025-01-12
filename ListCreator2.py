@@ -162,6 +162,11 @@ def validate_and_clean_json(raw_response):
         raise ValueError("El campo 'songs' no es una lista.")
     if not all("title" in song and "artist" in song for song in playlist_data["songs"]):
         raise ValueError("Las canciones no contienen los campos 'title' y 'artist'.")
+    if not all(isinstance(song.get('is_hidden_gem', False), bool) for song in playlist_data["songs"]):
+        # If is_hidden_gem is missing, default to False
+        for song in playlist_data["songs"]:
+            if 'is_hidden_gem' not in song:
+                song['is_hidden_gem'] = False
     return playlist_data["name"], playlist_data["description"], playlist_data["songs"]
 
 # Function to search for songs on Spotify
