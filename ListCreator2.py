@@ -368,6 +368,32 @@ def generate_playlist_page():
             st.error("❌ Failed to generate playlist details.")
     else:
         st.error("❌ No playlist data found.")
+    
+    # Button container for navigation
+    st.markdown(
+        """
+        <style>
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    st.markdown('<div class="button-container">', unsafe_allow_html=True)
+    
+    if st.button("← Back to Definition"):
+        change_page("define")
+    
+    if st.button("Reset Playlist Generation"):
+        st.session_state.playlist_data = {}  # Clear the playlist data
+        st.success("🔄 Playlist generation reset. You can start over.")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 def define_playlist_page():
     st.markdown("<h1>Define Your Playlist</h1>", unsafe_allow_html=True)
