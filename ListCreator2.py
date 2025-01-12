@@ -131,19 +131,23 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=messages,
-            max_tokens=1000,
+            max_tokens=1500,
             temperature=0.8 if hidden_gems or discover_new else 0.7,
         )
         playlist_response = response.choices[0].message.content.strip()
-
+        
+        st.write("📝 Response received from ChatGPT")
+        st.write("🔍 Response length:", len(playlist_response))
+        
         try:
             return validate_and_clean_json(playlist_response)
         except ValueError as e:
-            st.error(f"❌ Error processing ChatGPT response: {e}")
+            st.error("❌ JSON Validation Error:")
+            st.error(str(e))
             return None, None, []
 
     except Exception as e:
-        st.error(f"❌ Error generating playlist: {e}")
+        st.error(f"❌ ChatGPT API Error: {str(e)}")
         return None, None, []
 
 # Function to validate and clean JSON
@@ -154,14 +158,35 @@ def validate_and_clean_json(raw_response):
     """
     if not raw_response:
         raise ValueError("ChatGPT response is empty.")
+    
+    st.write("🔍 Debug: Processing raw response...")
+    
     try:
         playlist_data = json.loads(raw_response)
-    except json.JSONDecodeError:
+        st.write("✅ Initial JSON parsing successful")
+    except json.JSONDecodeError as e:
+        st.write("⚠️ Initial JSON parsing failed, attempting cleanup...")
+        # Remove any markdown formatting and clean the response
         cleaned_response = raw_response.replace("```json", "").replace("```", "").strip()
+        # Replace smart quotes and apostrophes with standard ones
+        cleaned_response = cleaned_response.replace(""", '"').replace(""", '"')
+        cleaned_response = cleaned_response.replace("'", "'").replace("'", "'")
+        # Remove any newlines and extra whitespace
+        cleaned_response = " ".join(cleaned_response.split())
+        # Ensure proper JSON string formatting
+        cleaned_response = cleaned_response.replace('\\"', '"').replace('\\n', ' ')
+        
+        st.write("🔍 Cleaned response preview (first 200 chars):")
+        st.code(cleaned_response[:200])
+        
         try:
             playlist_data = json.loads(cleaned_response)
+            st.write("✅ JSON parsing successful after cleanup")
         except json.JSONDecodeError as e:
-            raise ValueError(f"Could not process JSON even after cleaning: {e}")
+            st.error(f"❌ JSON Error Details:\nPosition: {e.pos}\nLine: {e.lineno}\nColumn: {e.colno}")
+            st.error("❌ Raw Response Preview:")
+            st.code(raw_response[:200])
+            raise ValueError(f"Could not process JSON even after cleaning. Error: {str(e)}")
     if not isinstance(playlist_data, dict):
         raise ValueError("JSON is not a valid object.")
     if "name" not in playlist_data or "description" not in playlist_data or "songs" not in playlist_data:
