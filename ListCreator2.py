@@ -84,18 +84,32 @@ def generate_playlist_details(mood, genres, hidden_gems=False):
         hidden_gems (bool): Whether to include lesser-known tracks
     """
     client = openai.OpenAI(api_key=OPENAI_API_KEY)
+    
+    # Modify the system message based on hidden_gems
+    system_content = (
+        "You are a music expert and DJ who curates playlists based on mood and genres. "
+        "Your job is to act as a DJ and create a playlist that connects deeply with the given mood and genres. "
+    )
+    
+    if hidden_gems:
+        system_content += (
+            "Since hidden gems mode is activated, create a more creative and unique playlist name "
+            "that reflects the underground/alternative nature of the selection. "
+            "The description should mention that this is a special curated selection of hidden gems. "
+            "40% of songs should be lesser-known hidden gems in these genres. "
+        )
+    
+    system_content += (
+        "Generate a playlist name (max 4 words), a description (max 20 words), and 20 songs. "
+        "Ensure all song names are free from special characters to maintain JSON format compatibility. "
+        "Each song must include 'title' and 'artist'. Respond in JSON format with the following structure: "
+        "{ 'name': '...', 'description': '...', 'songs': [{'title': '...', 'artist': '...'}] }"
+    )
+
     messages = [
         {
-            "role": "system", 
-            "content": (
-                "You are a music expert and DJ who curates playlists based on mood and genres. "
-                "Your job is to act as a DJ and create a playlist that connects deeply with the given mood and genres. "
-                "Generate a playlist name (max 4 words), a description (max 20 words), and 20 songs. "
-                "If hidden_gems is enabled, 40% of songs should be lesser-known hidden gems in these genres. "
-                "Ensure all song names are free from special characters to maintain JSON format compatibility. "
-                "Each song must include 'title' and 'artist'. Respond in JSON format with the following structure: "
-                "{ 'name': '...', 'description': '...', 'songs': [{'title': '...', 'artist': '...'}] }"
-            ),
+            "role": "system",
+            "content": system_content
         },
         {
             "role": "user",
@@ -104,16 +118,16 @@ def generate_playlist_details(mood, genres, hidden_gems=False):
                       f"{'Include 40% hidden gems and lesser-known songs.' if hidden_gems else ''}"
         },
     ]
+    
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=messages,
             max_tokens=750,
-            temperature=0.7,
+            temperature=0.8 if hidden_gems else 0.7,  # Slightly higher temperature for more creativity
         )
         playlist_response = response.choices[0].message.content.strip()
 
-        # Validate and clean the JSON
         try:
             return validate_and_clean_json(playlist_response)
         except ValueError as e:
