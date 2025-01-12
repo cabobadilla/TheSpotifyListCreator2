@@ -428,33 +428,30 @@ def define_playlist_page():
                 margin-top: 20px;
             }
             .button-container .stButton button {
-                width: 200px;
+                width: 200px;  /* Set a fixed width for buttons */
             }
             </style>
             """,
             unsafe_allow_html=True
         )
         
-        col3, col4, col5 = st.columns([1, 2, 1])
-        with col4:
-            left_col, right_col = st.columns(2)
-            with left_col:
-                if st.button("← Back", use_container_width=True):
-                    change_page("auth")
-            with right_col:
-                if st.button("Generate Playlist →", type="primary", use_container_width=True):
-                    if user_id and mood and genres:
-                        st.session_state.playlist_data = {
-                            "user_id": user_id,
-                            "mood": mood,
-                            "genres": genres,
-                            "hidden_gems": hidden_gems,
-                            "discover_new": discover_new
-                        }
-                        change_page("generate")
-                        st.rerun()
-                    else:
-                        st.warning("⚠️ Please complete all required fields")
+        # Create a button container
+        st.markdown('<div class="button-container">', unsafe_allow_html=True)
+        if st.button("← Back", use_container_width=True):
+            change_page("auth")
+        if st.button("Generate Playlist →", type="primary", use_container_width=True):
+            if user_id and mood and genres:
+                st.session_state.playlist_data = {
+                    "user_id": user_id,
+                    "mood": mood,
+                    "genres": genres,
+                    "hidden_gems": hidden_gems,
+                    "discover_new": discover_new
+                }
+                change_page("generate")
+            else:
+                st.warning("⚠️ Please complete all required fields")
+        st.markdown('</div>', unsafe_allow_html=True)
 
 def main():
     init_session_state()
