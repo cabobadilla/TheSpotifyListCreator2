@@ -102,9 +102,9 @@ def generate_playlist_details(mood, genres, hidden_gems=False):
     system_content += (
         "Generate a playlist name (max 4 words), a description (max 20 words), and 20 songs. "
         "Ensure all song names are free from special characters to maintain JSON format compatibility. "
-        "Each song must include 'title', 'artist', and 'is_hidden_gem' (boolean). "
+        "Each song must include 'title', 'artist', 'is_hidden_gem' (boolean), and 'is_new_music' (boolean). "
         "Respond in JSON format with the following structure: "
-        "{ 'name': '...', 'description': '...', 'songs': [{'title': '...', 'artist': '...', 'is_hidden_gem': boolean}] }"
+        "{ 'name': '...', 'description': '...', 'songs': [{'title': '...', 'artist': '...', 'is_hidden_gem': boolean, 'is_new_music': boolean}] }"
     )
 
     messages = [
@@ -168,6 +168,11 @@ def validate_and_clean_json(raw_response):
         for song in playlist_data["songs"]:
             if 'is_hidden_gem' not in song:
                 song['is_hidden_gem'] = False
+    if not all(isinstance(song.get('is_new_music', False), bool) for song in playlist_data["songs"]):
+        # If is_new_music is missing, default to False
+        for song in playlist_data["songs"]:
+            if 'is_new_music' not in song:
+                song['is_new_music'] = False
     return playlist_data["name"], playlist_data["description"], playlist_data["songs"]
 
 # Function to search for songs on Spotify
