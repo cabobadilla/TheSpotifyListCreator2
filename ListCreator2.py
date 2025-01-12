@@ -3,6 +3,7 @@ import json
 import streamlit as st
 import requests
 from urllib.parse import urlencode
+from typing import Literal
 
 # Estilo de Spotify (colores verde y negro)
 st.markdown(
@@ -340,6 +341,19 @@ def main():
                     st.error("❌ Could not generate playlist.")
             else:
                 st.warning("⚠️ Please complete all fields to create the playlist.")
+
+def generate_playlist_page():
+    st.markdown("<h1>Generate Playlist</h1>", unsafe_allow_html=True)
+    
+    # Use data from session state
+    data = st.session_state.playlist_data
+    
+    # Use existing generation code (lines 301-336)
+    # But wrap it in columns for better layout
+    
+    # Add back button
+    if st.button("← Back to Definition"):
+        change_page("define")
 
 if __name__ == "__main__":
     main()
