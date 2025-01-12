@@ -334,12 +334,32 @@ def generate_playlist_page():
     # Use data from session state
     data = st.session_state.playlist_data
     
-    # Use existing generation code (lines 301-336)
-    # But wrap it in columns for better layout
-    
-    # Add back button
-    if st.button("← Back to Definition"):
-        change_page("define")
+    if data:
+        st.info("🎧 Generating your playlist...")
+        
+        # Call the function to generate playlist details
+        name, description, songs = generate_playlist_details(data["mood"], data["genres"], data["hidden_gems"], data["discover_new"])
+        
+        if name and description and songs:
+            st.success(f"✅ Generated name: {name}")
+            st.info(f"📜 Generated description: {description}")
+            st.success("🎵 Generated songs:")
+            
+            for idx, song in enumerate(songs, 1):
+                st.write(f"{idx}. **{song['title']}** - {song['artist']} ({song['year']})")
+            
+            # Optionally, add a button to create the playlist on Spotify
+            if st.button("Create Playlist on Spotify"):
+                user_id = data["user_id"]
+                playlist_response = create_playlist(st.session_state.access_token, user_id, name, description)
+                if "id" in playlist_response:
+                    st.success("✅ Playlist created successfully on Spotify!")
+                else:
+                    st.error("❌ Failed to create playlist on Spotify.")
+        else:
+            st.error("❌ Failed to generate playlist details.")
+    else:
+        st.error("❌ No playlist data found.")
 
 def define_playlist_page():
     st.markdown("<h1>Define Your Playlist</h1>", unsafe_allow_html=True)
