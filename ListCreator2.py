@@ -316,7 +316,9 @@ def display_playlist_creation_form():
     else:
         discover_new = False
 
-    st.write("🔍 Debug: New Music flag is", feature_flags.get("new_music", False))  # Debugging statement
+    # Show debug message if debugging is enabled
+    if feature_flags.get("debugging", False):
+        st.write("🔍 Debug: New Music flag is", feature_flags.get("new_music", False))
 
     if st.button("🎵 Generate and Create Playlist 🎵"):
         if user_id and mood and genres:
