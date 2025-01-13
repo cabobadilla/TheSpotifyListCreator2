@@ -276,6 +276,9 @@ def generate_unique_playlist_name(token, desired_name):
     while new_name in existing_names:
         i += 1
         new_name = f"{desired_name} ({i})"
+        
+    if feature_flags.get("debugging", False):
+        st.write(f"🔍 Debug: Modified playlist name to '{new_name}' to avoid duplication.")
     
     return new_name
 
