@@ -267,7 +267,12 @@ def generate_unique_playlist_name(token, desired_name):
     playlists = get_user_playlists(token)
     existing_names = {playlist['name'] for playlist in playlists}
     
+    if feature_flags.get("debugging", False):
+        st.write(f"🔍 Debug: Existing playlist names: {existing_names}")
+    
     if desired_name not in existing_names:
+        if feature_flags.get("debugging", False):
+            st.write(f"🔍 Debug: '{desired_name}' is unique. No change needed.")
         return desired_name
     
     # Append an incremental number to the name
@@ -276,9 +281,11 @@ def generate_unique_playlist_name(token, desired_name):
     while new_name in existing_names:
         i += 1
         new_name = f"{desired_name} ({i})"
-        
+        if feature_flags.get("debugging", False):
+            st.write(f"🔍 Debug: Trying new name '{new_name}'")
+    
     if feature_flags.get("debugging", False):
-        st.write(f"🔍 Debug: Modified playlist name to '{new_name}' to avoid duplication.")
+        st.write(f"🔍 Debug: Final playlist name: '{new_name}'")
     
     return new_name
 
