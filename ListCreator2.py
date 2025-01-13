@@ -108,8 +108,12 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
             temperature=0.8 if hidden_gems or discover_new else 0.7,
         )
         playlist_response = response.choices[0].message.content.strip()
-        st.write("📝 Response received from ChatGPT")
-        st.write("🔍 Response length:", len(playlist_response))
+        
+        # Show debug messages if debugging is enabled
+        if feature_flags.get("debugging", False):
+            st.write("📝 Response received from ChatGPT")
+            st.write("🔍 Response length:", len(playlist_response))
+        
         return validate_and_clean_json(playlist_response)
     except Exception as e:
         st.error(f"❌ ChatGPT API Error: {str(e)}")
