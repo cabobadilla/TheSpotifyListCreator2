@@ -5,6 +5,8 @@ import requests
 from urllib.parse import urlencode
 
 # new File sync wth repositoy
+% version 0.752 working but issues naming the lists
+
 # Estilo de Spotify (colores verde y negro)
 st.markdown(
     '''
