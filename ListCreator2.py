@@ -406,8 +406,7 @@ def handle_playlist_creation(user_id, name, description, songs, start_time):
                 end_time = time.time()
                 duration = end_time - start_time
                 
-                st.success(f"✅ Playlist '{unique_name}' successfully created on Spotify.")
-                st.info(f"⏱️ Your playlist was generated in {duration:.2f} seconds.")
+                st.success(f"✅ Playlist '{unique_name}' successfully created on Spotify - created in {duration:.2f} seconds.")
             else:
                 st.error("❌ Could not create playlist on Spotify.")
     else:
