@@ -8,6 +8,7 @@ import time
 # new File sync wth repositoy
 # version 0.761 working but issues naming the lists
 # version 0.762 fixed the issue with repeated playlist names
+# version 0.767 working ok
 
 # Estilo de Spotify (colores verde y negro)
 st.markdown(
@@ -355,12 +356,16 @@ def display_playlist_creation_form():
     if st.button("🎵 Generate and Create Playlist 🎵"):
         if user_id and mood and genres:
             st.info("🎧 Generating songs, name and description...")
+            
+            # Start the timer
+            start_time = time.time()
+            
             name, description, songs = generate_playlist_details(mood, genres, hidden_gems, discover_new)
-            handle_playlist_creation(user_id, name, description, songs)
+            handle_playlist_creation(user_id, name, description, songs, start_time)
         else:
             st.warning("⚠️ Please complete all fields to create the playlist.")
 
-def handle_playlist_creation(user_id, name, description, songs):
+def handle_playlist_creation(user_id, name, description, songs, start_time):
     if name and description and songs:
         st.success(f"✅ Generated name: {name}")
         st.info(f"📜 Generated description: {description}")
@@ -396,7 +401,13 @@ def handle_playlist_creation(user_id, name, description, songs):
             if "id" in playlist_response:
                 playlist_id = playlist_response["id"]
                 add_tracks_to_playlist(st.session_state.access_token, playlist_id, track_uris)
+                
+                # End the timer
+                end_time = time.time()
+                duration = end_time - start_time
+                
                 st.success(f"✅ Playlist '{unique_name}' successfully created on Spotify.")
+                st.info(f"⏱️ Your playlist was generated in {duration:.2f} seconds.")
             else:
                 st.error("❌ Could not create playlist on Spotify.")
     else:
