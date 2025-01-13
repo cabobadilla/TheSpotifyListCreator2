@@ -274,7 +274,7 @@ def get_user_playlists(token):
 def generate_unique_playlist_name(desired_name):
     # Generate a 4-digit timestamp
     timestamp = int(time.time()) % 10000  # Get the last 4 digits of the current timestamp
-    unique_name = f"{desired_name} {timestamp}"
+    unique_name = f"{desired_name} - {timestamp:04d}"
     
     if feature_flags.get("debugging", False):
         st.write(f"🔍 Debug: Generated unique playlist name: '{unique_name}'")
