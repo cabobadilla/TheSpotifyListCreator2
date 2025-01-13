@@ -3,6 +3,7 @@ import json
 import streamlit as st
 import requests
 from urllib.parse import urlencode
+import time
 
 # new File sync wth repositoy
 # version 0.761 working but issues naming the lists
@@ -270,31 +271,15 @@ def get_user_playlists(token):
 
     return playlists
 
-def generate_unique_playlist_name(token, desired_name):
-    playlists = get_user_playlists(token)
-    existing_names = {playlist['name'] for playlist in playlists}
+def generate_unique_playlist_name(desired_name):
+    # Generate a 4-digit timestamp
+    timestamp = int(time.time()) % 10000  # Get the last 4 digits of the current timestamp
+    unique_name = f"{desired_name} {timestamp}"
     
     if feature_flags.get("debugging", False):
-        st.write(f"🔍 Debug: Existing playlist names: {existing_names}")
+        st.write(f"🔍 Debug: Generated unique playlist name: '{unique_name}'")
     
-    if desired_name not in existing_names:
-        if feature_flags.get("debugging", False):
-            st.write(f"🔍 Debug: '{desired_name}' is unique. No change needed.")
-        return desired_name
-    
-    # Append an incremental number to the name
-    i = 1
-    new_name = f"{desired_name} ({i})"
-    while new_name in existing_names:
-        i += 1
-        new_name = f"{desired_name} ({i})"
-        if feature_flags.get("debugging", False):
-            st.write(f"🔍 Debug: Trying new name '{new_name}'")
-    
-    if feature_flags.get("debugging", False):
-        st.write(f"🔍 Debug: Final playlist name: '{new_name}'")
-    
-    return new_name
+    return unique_name
 
 # Streamlit App
 def main():
@@ -382,7 +367,7 @@ def handle_playlist_creation(user_id, name, description, songs):
         st.success(f"🎵 Generated songs:")
         
         # Get a unique playlist name
-        unique_name = generate_unique_playlist_name(st.session_state.access_token, name)
+        unique_name = generate_unique_playlist_name(name)
         
         st.markdown("<div style='margin-bottom: 10px'><b>Legend:</b> ⭐ = Top Hit | 💎 = Hidden Gem | 🆕 = New Music</div>", unsafe_allow_html=True)
         
