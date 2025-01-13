@@ -3,20 +3,6 @@ import json
 import streamlit as st
 import requests
 from urllib.parse import urlencode
-from typing import Literal
-
-# Initialize session state
-def init_session_state():
-    if "page" not in st.session_state:
-        st.session_state.page = "auth"
-    if "playlist_data" not in st.session_state:
-        st.session_state.playlist_data = {}
-    if "access_token" not in st.session_state:
-        st.session_state.access_token = None
-
-# Function to change pages
-def change_page(page: Literal["auth", "define", "generate"]):
-    st.session_state.page = page
 
 # Estilo de Spotify (colores verde y negro)
 st.markdown(
@@ -247,14 +233,8 @@ def create_playlist(token, user_id, name, description):
     url = f"https://api.spotify.com/v1/users/{user_id}/playlists"
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     payload = {"name": name, "description": description, "public": False}
-    
     response = requests.post(url, headers=headers, json=payload)
-    
-    if response.status_code == 201:  # HTTP 201 Created
-        return response.json()  # Return the created playlist data
-    else:
-        st.error(f"❌ Error creating playlist: {response.json().get('error', {}).get('message', 'Unknown error')}")
-        return None
+    return response.json()
 
 # Function to add songs to a playlist on Spotify
 def add_tracks_to_playlist(token, playlist_id, track_uris):
@@ -264,279 +244,102 @@ def add_tracks_to_playlist(token, playlist_id, track_uris):
     response = requests.post(url, headers=headers, json=payload)
     return response
 
-def combined_auth_and_define_page():
+# Streamlit App
+def main():
     st.markdown(
         """
-        <div style='text-align: center;'>
-            <h1>🎵 Spotify Playlist Creator 2.0 🎵</h1>
-            <h3>Create personalized playlists based on your mood and favorite genre</h3>
-        </div>
+        <h1 style='text-align: center;'>🎵 Spotify Playlist Creator 2.0 🎵</h1>
+        <h3 style='text-align: center;'>Create personalized playlists based on your mood and favorite genre</h3>
         """,
         unsafe_allow_html=True
     )
     
-    with st.container():
-        if "access_token" not in st.session_state:
-            auth_url = get_auth_url(CLIENT_ID, REDIRECT_URI, SCOPES)
-            st.markdown(
-                f"<div style='text-align: center;'><a href='{auth_url}' target='_blank' class='spotify-button'>🔑 Login with Spotify</a></div>",
-                unsafe_allow_html=True
-            )
-            
-            # Handle authentication code from URL
-            query_params = st.query_params
-            if "code" in query_params:
-                code = query_params["code"]
-                token_response = requests.post(
-                    "https://accounts.spotify.com/api/token",
-                    headers={"Content-Type": "application/x-www-form-urlencoded"},
-                    data={
-                        "grant_type": "authorization_code",
-                        "code": code,
-                        "redirect_uri": REDIRECT_URI,
-                        "client_id": CLIENT_ID,
-                        "client_secret": CLIENT_SECRET,
-                    },
-                ).json()
-                
-                if "access_token" in token_response:
-                    st.session_state.access_token = token_response["access_token"]
-                    st.success("✅ Authentication completed.")
-                else:
-                    st.error("❌ Authentication error.")
-        else:
-            st.success("✅ Already authenticated")
-        
-        # Playlist definition section
-        config = load_config()  # Load configuration for moods and genres
-        
-        st.markdown("<h2>Define Your Playlist</h2>", unsafe_allow_html=True)
-        
+    # Step 1: Authorization
+    st.markdown("<h2 style='color: #1DB954;'>🔑 Authentication</h2>", unsafe_allow_html=True)
+    if "access_token" not in st.session_state:
+        auth_url = get_auth_url(CLIENT_ID, REDIRECT_URI, SCOPES)
+        st.markdown(
+            f"<div style='text-align: center;'><a href='{auth_url}' target='_blank' style='color: #1DB954; font-weight: bold;'>🔑 Login with Spotify</a></div>",
+            unsafe_allow_html=True
+        )
+        query_params = st.query_params
+        if "code" in query_params:
+            code = query_params["code"]
+            token_response = requests.post(
+                "https://accounts.spotify.com/api/token",
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                data={
+                    "grant_type": "authorization_code",
+                    "code": code,
+                    "redirect_uri": REDIRECT_URI,
+                    "client_id": CLIENT_ID,
+                    "client_secret": CLIENT_SECRET,
+                },
+            ).json()
+            if "access_token" in token_response:
+                st.session_state.access_token = token_response["access_token"]
+                st.success("✅ Authentication completed.")
+            else:
+                st.error("❌ Authentication error.")
+    else:
+        st.success("✅ Already authenticated.")
+
+    # Step 2: Playlist generation
+    if "access_token" in st.session_state:
+        st.markdown("<h2>🎶 Generate and Create Playlist</h2>", unsafe_allow_html=True)
         user_id = st.text_input("🎤 Enter your Spotify user ID", placeholder="Spotify Username")
         mood = st.selectbox("😊 Select your desired mood", config["moods"])
         genres = st.multiselect("🎸 Select music genres", config["genres"])
-        
-        col_a, col_b = st.columns(2)
-        with col_a:
-            hidden_gems = st.checkbox("💎 Hidden Gems", help="Include lesser-known tracks")
-        with col_b:
-            discover_new = st.checkbox("🆕 New Music", help="Include recent tracks")
-        
-        # Button container for navigation
-        if st.button("Generate Playlist →", type="primary"):
-            if user_id and mood and genres:
-                st.session_state.playlist_data = {
-                    "user_id": user_id,
-                    "mood": mood,
-                    "genres": genres,
-                    "hidden_gems": hidden_gems,
-                    "discover_new": discover_new
-                }
-                change_page("generate")
-            else:
-                st.warning("⚠️ Please complete all required fields")
-
-def generate_playlist_page():
-    st.markdown("<h1>Generate Playlist</h1>", unsafe_allow_html=True)
-    
-    data = st.session_state.playlist_data
-    
-    if data:
-        st.info("🎧 Generating your playlist...")
-        
-        name, description, songs = generate_playlist_details(data["mood"], data["genres"], data["hidden_gems"], data["discover_new"])
-        
-        if name and description and songs:
-            st.success(f"✅ Generated name: {name}")
-            st.info(f"📜 Generated description: {description}")
-            st.success("🎵 Generated songs:")
-            
-            for idx, song in enumerate(songs, 1):
-                st.write(f"{idx}. **{song['title']}** - {song['artist']} ({song['year']})")
-            
-            # Create the playlist on Spotify
-            if st.button("Create Playlist on Spotify"):
-                user_id = data["user_id"]
-                playlist_response = create_playlist(st.session_state.access_token, user_id, name, description)
-                
-                if playlist_response and "id" in playlist_response:
-                    st.success("✅ Playlist created successfully on Spotify!")
-                    st.write(f"🔗 [Open your playlist here](https://open.spotify.com/playlist/{playlist_response['id']})")
-                else:
-                    st.error("❌ Failed to create playlist on Spotify.")
-        else:
-            st.error("❌ Failed to generate playlist details.")
-    else:
-        st.error("❌ No playlist data found.")
-    
-    # Button container for navigation
-    st.markdown(
-        """
-        <style>
-        .button-container {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin-top: 20px;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-    
-    st.markdown('<div class="button-container">', unsafe_allow_html=True)
-    
-    if st.button("← Back to Definition"):
-        change_page("define")
-    
-    if st.button("Reset Playlist Generation"):
-        st.session_state.playlist_data = {}  # Clear the playlist data
-        st.success("🔄 Playlist generation reset. You can start over.")
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-
-def define_playlist_page():
-    st.markdown("<h1>Define Your Playlist</h1>", unsafe_allow_html=True)
-    
-    with st.container():
-        config = load_config()  # Load configuration for moods and genres
-        
-        col1, col2 = st.columns([3, 1])
-        
+        col1, col2 = st.columns(2)
         with col1:
-            user_id = st.text_input("🎤 Enter your Spotify user ID", placeholder="Spotify Username")
-            mood = st.selectbox("😊 Select your desired mood", config["moods"])
-            genres = st.multiselect("🎸 Select music genres", config["genres"])
-            
-            col_a, col_b = st.columns(2)
-            with col_a:
-                hidden_gems = st.checkbox("💎 Hidden Gems", help="Include lesser-known tracks")
-            with col_b:
-                discover_new = st.checkbox("🆕 New Music", help="Include recent tracks")
-        
+            hidden_gems = st.checkbox("💎 Hidden Gems", help="Include lesser-known tracks in your playlist")
         with col2:
-            st.markdown(
-                """
-                <div class='step-container'>
-                    <h4>Tips</h4>
-                    <ul>
-                        <li>Choose up to 3 genres for better results</li>
-                        <li>Hidden Gems mode finds unique tracks</li>
-                        <li>New Music focuses on recent releases</li>
-                    </ul>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        
-        # Button container with custom CSS for button layout
-        st.markdown(
-            """
-            <style>
-            .button-container {
-                display: flex;
-                justify-content: center;
-                gap: 20px;
-                margin-top: 20px;
-            }
-            .button-container .stButton button {
-                width: 200px;  /* Set a fixed width for buttons */
-            }
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
-        
-        # Create a button container
-        st.markdown('<div class="button-container">', unsafe_allow_html=True)
-        
-        if st.button("← Back", use_container_width=True):
-            change_page("auth")
-        
-        if st.button("Generate Playlist →", type="primary", use_container_width=True):
-            if user_id and mood and genres:
-                st.session_state.playlist_data = {
-                    "user_id": user_id,
-                    "mood": mood,
-                    "genres": genres,
-                    "hidden_gems": hidden_gems,
-                    "discover_new": discover_new
-                }
-                change_page("generate")
-            else:
-                st.warning("⚠️ Please complete all required fields")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
+            discover_new = st.checkbox("🆕 New Music", help="Include recent tracks from the last 3 years")
 
-def main():
-    init_session_state()
-    
-    # Add responsive CSS
-    st.markdown(
-        """
-        <style>
-            /* Base styles */
-            body {
-                background-color: #121212;
-                color: white;
-            }
-            h1, h2, h3 {
-                color: #1DB954;
-                font-weight: bold;
-                text-align: center;
-            }
-            .stButton>button {
-                background-color: #1DB954;
-                color: white;
-                font-size: 16px;
-                border-radius: 25px;
-                padding: 10px 20px;
-            }
-            .stButton>button:hover {
-                background-color: #1ED760;
-            }
-            
-            /* Responsive styles */
-            @media (max-width: 768px) {
-                .stButton>button {
-                    width: 100%;
-                    margin: 5px 0;
-                }
-                .step-container {
-                    padding: 10px;
-                }
-            }
-            
-            /* Custom components */
-            .spotify-button {
-                background-color: #1DB954;
-                color: white;
-                padding: 12px 24px;
-                border-radius: 25px;
-                text-decoration: none;
-                display: inline-block;
-                margin: 10px 0;
-                font-weight: bold;
-            }
-            
-            .step-container {
-                background-color: #2C2C2C;
-                padding: 20px;
-                border-radius: 10px;
-                margin: 20px 0;
-            }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-    
-    # Route to correct page
-    if st.session_state.page == "auth":
-        combined_auth_and_define_page()
-    elif st.session_state.page == "define":
-        define_playlist_page()
-    elif st.session_state.page == "generate":
-        generate_playlist_page()
+        if st.button("🎵 Generate and Create Playlist 🎵"):
+            if user_id and mood and genres:
+                st.info("🎧 Generating songs, name and description...")
+                name, description, songs = generate_playlist_details(mood, genres, hidden_gems, discover_new)
+
+                if name and description and songs:
+                    st.success(f"✅ Generated name: {name}")
+                    st.info(f"📜 Generated description: {description}")
+                    st.success(f"🎵 Generated songs:")
+                    
+                    st.markdown("<div style='margin-bottom: 10px'><b>Legend:</b> ⭐ = Top Hit | 💎 = Hidden Gem | 🆕 = New Music</div>", unsafe_allow_html=True)
+                    
+                    track_uris = []
+                    for idx, song in enumerate(songs, 1):
+                        title = song['title']
+                        artist = song['artist']
+                        is_hidden_gem = song.get('is_hidden_gem', False)
+                        is_new_music = song.get('is_new_music', False)
+                        
+                        search_response = search_tracks(st.session_state.access_token, title, artist)
+                        if "tracks" in search_response and search_response["tracks"]["items"]:
+                            track_uris.append(search_response["tracks"]["items"][0]["uri"])
+                            icons = []
+                            if is_hidden_gem:
+                                icons.append("💎")
+                            if is_new_music:
+                                icons.append("🆕")
+                            if not icons:
+                                icons.append("⭐")
+                            year = song.get('year', 'N/A')
+                            st.write(f"{idx}. **{title}** - {artist} ({year}) {' '.join(icons)}")
+
+                    if track_uris:
+                        playlist_response = create_playlist(st.session_state.access_token, user_id, name, description)
+                        if "id" in playlist_response:
+                            playlist_id = playlist_response["id"]
+                            add_tracks_to_playlist(st.session_state.access_token, playlist_id, track_uris)
+                            st.success(f"✅ Playlist '{name}' successfully created on Spotify.")
+                        else:
+                            st.error("❌ Could not create playlist on Spotify.")
+                else:
+                    st.error("❌ Could not generate playlist.")
+            else:
+                st.warning("⚠️ Please complete all fields to create the playlist.")
 
 if __name__ == "__main__":
     main()
