@@ -68,11 +68,12 @@ def load_feature_flags():
     """
     try:
         feature_flags = st.secrets["feature_flags"]
-        st.write("🔍 Debug: Feature flags loaded:", feature_flags)  # Debugging statement
+        if feature_flags.get("debugging", False):
+            st.write("🔍 Debug: Feature flags loaded:", feature_flags)  # Debugging statement
         return feature_flags
     except KeyError:
         st.error("❌ Feature flags not found in Streamlit secrets.")
-        return {"hidden_gems": False, "new_music": False}
+        return {"hidden_gems": False, "new_music": False, "debugging": False}
 
 feature_flags = load_feature_flags()
 
@@ -155,11 +156,13 @@ def validate_and_clean_json(raw_response):
     if not raw_response:
         raise ValueError("ChatGPT response is empty.")
     
-    st.write("🔍 Debug: Processing raw response...")
+    if feature_flags.get("debugging", False):
+        st.write("🔍 Debug: Processing raw response...")
     
     try:
         playlist_data = json.loads(raw_response)
-        st.write("✅ Initial JSON parsing successful")
+        if feature_flags.get("debugging", False):
+            st.write("✅ Initial JSON parsing successful")
     except json.JSONDecodeError:
         playlist_data = attempt_json_cleanup(raw_response)
     
@@ -167,10 +170,12 @@ def validate_and_clean_json(raw_response):
     return playlist_data["name"], playlist_data["description"], playlist_data["songs"]
 
 def attempt_json_cleanup(raw_response):
-    st.write("⚠️ Initial JSON parsing failed, attempting cleanup...")
+    if feature_flags.get("debugging", False):
+        st.write("⚠️ Initial JSON parsing failed, attempting cleanup...")
     cleaned_response = clean_response(raw_response)
-    st.write("🔍 Cleaned response preview (first 200 chars):")
-    st.code(cleaned_response[:200])
+    if feature_flags.get("debugging", False):
+        st.write("🔍 Cleaned response preview (first 200 chars):")
+        st.code(cleaned_response[:200])
     
     try:
         return json.loads(cleaned_response)
