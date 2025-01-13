@@ -251,6 +251,33 @@ def add_tracks_to_playlist(token, playlist_id, track_uris):
     response = requests.post(url, headers=headers, json=payload)
     return response
 
+def get_user_playlists(token):
+    url = "https://api.spotify.com/v1/me/playlists"
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 200:
+        return response.json().get('items', [])
+    else:
+        st.error(f"❌ Error fetching playlists: {response.json().get('error', {}).get('message', 'Unknown error')}")
+        return []
+
+def generate_unique_playlist_name(token, desired_name):
+    playlists = get_user_playlists(token)
+    existing_names = {playlist['name'] for playlist in playlists}
+    
+    if desired_name not in existing_names:
+        return desired_name
+    
+    # Append an incremental number to the name
+    i = 1
+    new_name = f"{desired_name} ({i})"
+    while new_name in existing_names:
+        i += 1
+        new_name = f"{desired_name} ({i})"
+    
+    return new_name
+
 # Streamlit App
 def main():
     st.markdown(
@@ -336,6 +363,9 @@ def handle_playlist_creation(user_id, name, description, songs):
         st.info(f"📜 Generated description: {description}")
         st.success(f"🎵 Generated songs:")
         
+        # Get a unique playlist name
+        unique_name = generate_unique_playlist_name(st.session_state.access_token, name)
+        
         st.markdown("<div style='margin-bottom: 10px'><b>Legend:</b> ⭐ = Top Hit | 💎 = Hidden Gem | 🆕 = New Music</div>", unsafe_allow_html=True)
         
         track_uris = []
@@ -359,11 +389,11 @@ def handle_playlist_creation(user_id, name, description, songs):
                 st.write(f"{idx}. **{title}** - {artist} ({year}) {' '.join(icons)}")
 
         if track_uris:
-            playlist_response = create_playlist(st.session_state.access_token, user_id, name, description)
+            playlist_response = create_playlist(st.session_state.access_token, user_id, unique_name, description)
             if "id" in playlist_response:
                 playlist_id = playlist_response["id"]
                 add_tracks_to_playlist(st.session_state.access_token, playlist_id, track_uris)
-                st.success(f"✅ Playlist '{name}' successfully created on Spotify.")
+                st.success(f"✅ Playlist '{unique_name}' successfully created on Spotify.")
             else:
                 st.error("❌ Could not create playlist on Spotify.")
     else:
