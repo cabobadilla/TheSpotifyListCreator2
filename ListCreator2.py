@@ -97,10 +97,10 @@ def get_auth_url(client_id, redirect_uri, scopes):
     return f"{auth_url}?{urlencode(params)}"
 
 # Function to generate songs, playlist name, and description using ChatGPT
-def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=False):
+def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=False, songs_from_films=False):
     client = openai.OpenAI(api_key=OPENAI_API_KEY)
-    system_content = build_system_content(hidden_gems, discover_new)
-    user_content = build_user_content(mood, genres, hidden_gems, discover_new)
+    system_content = build_system_content(hidden_gems, discover_new, songs_from_films)
+    user_content = build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films)
     
     messages = [
         {"role": "system", "content": system_content},
@@ -126,7 +126,7 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
         st.error(f"❌ ChatGPT API Error: {str(e)}")
         return None, None, []
 
-def build_system_content(hidden_gems, discover_new):
+def build_system_content(hidden_gems, discover_new, songs_from_films):
     content = (
         "You are a music expert and DJ who curates playlists based on mood and genres. "
         "Your job is to act as a DJ and create a playlist that connects deeply with the given mood and genres. "
@@ -134,10 +134,10 @@ def build_system_content(hidden_gems, discover_new):
         "If the filters or conditions limit the selection to fewer than 15 songs, complete the playlist with similar songs of the same mood and genres. "
         "IMPORTANT: Use only basic ASCII characters. No special quotes, apostrophes, or symbols. "
         "Each song MUST include these exact fields with proper JSON formatting: "
-        "title (string), artist (string), year (integer), is_hidden_gem (boolean), is_new_music (boolean). "
+        "title (string), artist (string), year (integer), is_hidden_gem (boolean), is_new_music (boolean), is_from_film (boolean). "
         'RESPOND WITH ONLY THE FOLLOWING JSON STRUCTURE, NO OTHER TEXT: '
         '{"name": "Simple Name", "description": "Simple description", "songs": ['
-        '{"title": "Song Name", "artist": "Artist Name", "year": 2024, "is_hidden_gem": false, "is_new_music": false}'
+        '{"title": "Song Name", "artist": "Artist Name", "year": 2024, "is_hidden_gem": false, "is_new_music": false, "is_from_film": false}'
         ']}'
     )
     if hidden_gems:
@@ -154,14 +154,22 @@ def build_system_content(hidden_gems, discover_new):
             "2022 onwards. Mark these songs with 'is_new_music' flag. "
             "The description should mention that this includes recent releases. "
         )
+    if songs_from_films:
+        content += (
+            "Include songs that are featured in films. "
+            "20% of the songs should be movie soundtracks. "
+            "Mark these songs with 'is_from_film' flag. "
+            "The description should mention that this includes songs from popular films. "
+        )
     return content
 
-def build_user_content(mood, genres, hidden_gems, discover_new):
+def build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films):
     return (
         f"Create a playlist for the mood '{mood}' and genres {', '.join(genres)}. "
         f"Make sure the songs align with the mood and genres. "
         f"{'Include 40% hidden gems and lesser-known songs.' if hidden_gems else ''} "
         f"{'Include 40% songs from 2023-2024 with accurate release years.' if discover_new else ''} "
+        f"{'Include 20% songs from films.' if songs_from_films else ''} "
         f"Ensure each song has an accurate release year as an integer."
     )
 
@@ -318,7 +326,7 @@ def display_playlist_creation_form():
     user_id = st.text_input("🎤 Enter your Spotify user ID", placeholder="Spotify Username")
     mood = st.selectbox("😊 Select your desired mood", config["moods"])
     genres = st.multiselect("🎸 Select music genres", config["genres"])
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     
     # Use feature flags to control the visibility of checkboxes
     if feature_flags.get("hidden_gems", False):
@@ -333,6 +341,12 @@ def display_playlist_creation_form():
     else:
         discover_new = False
 
+    if feature_flags.get("songs_from_films", False):
+        with col3:
+            songs_from_films = st.checkbox("🎬 Movie Soundtracks", help="Include songs featured in films")
+    else:
+        songs_from_films = False
+
     # Show debug message if debugging is enabled
     if feature_flags.get("debugging", False):
         st.write("🔍 Debug: New Music flag is", feature_flags.get("new_music", False))
@@ -344,7 +358,7 @@ def display_playlist_creation_form():
             # Start the timer
             start_time = time.time()
             
-            name, description, songs = generate_playlist_details(mood, genres, hidden_gems, discover_new)
+            name, description, songs = generate_playlist_details(mood, genres, hidden_gems, discover_new, songs_from_films)
             handle_playlist_creation(user_id, name, description, songs, start_time)
         else:
             st.warning("⚠️ Please complete all fields to create the playlist.")
