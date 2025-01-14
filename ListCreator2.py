@@ -9,6 +9,7 @@ import time
 # version 0.761 working but issues naming the lists
 # version 0.762 fixed the issue with repeated playlist names
 # version 0.767 working ok
+# version 0.769 just adding dif style
 
 # Estilo de Spotify (colores verde y negro)
 st.markdown(
@@ -17,6 +18,7 @@ st.markdown(
         body {
             background-color: #121212;
             color: white;
+            font-family: 'Arial', sans-serif;
         }
         h1, h2, h3 {
             color: #1DB954;
@@ -286,8 +288,8 @@ def generate_unique_playlist_name(desired_name):
 def main():
     st.markdown(
         """
-        <h1 style='text-align: center;'>🎵 Spotify Playlist Creator 2.0 🎵</h1>
-        <h3 style='text-align: center;'>Create personalized playlists based on your mood and favorite genre</h3>
+        <h1 style='text-align: center;'>🎵 GenAI Playlist Creator by BCG Platinion 🎵</h1>
+        <h3 style='text-align: center;'>Create automatic and personalized playlists based on mood you want to get and favorite genres</h3>
         """,
         unsafe_allow_html=True
     )
