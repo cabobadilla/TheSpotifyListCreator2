@@ -256,24 +256,6 @@ def add_tracks_to_playlist(token, playlist_id, track_uris):
     response = requests.post(url, headers=headers, json=payload)
     return response
 
-def get_user_playlists(token):
-    url = "https://api.spotify.com/v1/me/playlists"
-    headers = {"Authorization": f"Bearer {token}"}
-    playlists = []
-    params = {"limit": 50}  # Maximum limit per request
-
-    while url:
-        response = requests.get(url, headers=headers, params=params)
-        if response.status_code == 200:
-            data = response.json()
-            playlists.extend(data.get('items', []))
-            url = data.get('next')  # Get the next page URL
-        else:
-            st.error(f"❌ Error fetching playlists: {response.json().get('error', {}).get('message', 'Unknown error')}")
-            break
-
-    return playlists
-
 def generate_unique_playlist_name(desired_name):
     # Generate a 4-digit timestamp
     timestamp = int(time.time()) % 10000  # Get the last 4 digits of the current timestamp
