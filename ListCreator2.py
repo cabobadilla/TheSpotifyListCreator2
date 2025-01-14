@@ -18,27 +18,27 @@ st.markdown(
         body {
             background-color: #121212;
             color: white;
-            font-family: 'Arial', sans-serif;
+            font-family: 'Helvetica', sans-serif;
         }
         h1, h2, h3 {
-            color: #1DB954;
+            color: #00A551;
             font-weight: bold;
             text-align: center;
         }
         .stButton>button {
-            background-color: #1DB954;
+            background-color: #00A551;
             color: white;
             font-size: 16px;
             border-radius: 25px;
             padding: 10px 20px;
         }
         .stButton>button:hover {
-            background-color: #1ED760;
+            background-color: #00C36A;
         }
         .stTextInput>div>input, .stTextArea>div>textarea, .stSelectbox>div>div>div, .stMultiSelect>div>div>div {
             background-color: #2C2C2C;
             color: white;
-            border: 1px solid #1DB954;
+            border: 1px solid #00A551;
             border-radius: 10px;
         }
     </style>
@@ -289,7 +289,7 @@ def main():
     st.markdown(
         """
         <h1 style='text-align: center;'>🎵 GenAI Playlist Creator by BCG Platinion 🎵</h1>
-        <h3 style='text-align: center;'>Create automatic and personalized playlists based on mood you want to get and favorite genres</h3>
+        <h3 style='text-align: center;'>Create personalized playlists automatically based on your mood and favorite genres with GenAI by OpenAI</h3>
         """,
         unsafe_allow_html=True
     )
