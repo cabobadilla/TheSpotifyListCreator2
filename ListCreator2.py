@@ -243,7 +243,13 @@ def search_tracks(token, title, artist):
         handle_spotify_error(response)
         return {"tracks": {"items": []}}
     
-    return response.json()
+    try:
+        if feature_flags.get("debugging", False):
+            st.write("🔍 Debug: Response content:", response.content)
+        return response.json()
+    except json.JSONDecodeError:
+        st.error("❌ Error decoding JSON response from Spotify.")
+        return {"tracks": {"items": []}}
 
 def handle_spotify_error(response):
     error_message = response.json().get('error', {}).get('message', 'Unknown error')
