@@ -334,25 +334,10 @@ def display_playlist_creation_form():
     mood = st.selectbox("😊 Select your desired mood", config["moods"])
     genres = st.multiselect("🎸 Select music genres", config["genres"])
     
-    # Create columns for radio buttons
-    st.write("Select a feature for your playlist:")
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        none_selected = st.radio("", ["None"])
-    with col2:
-        hidden_gems_selected = st.radio("", ["💎 Hidden Gems"])
-    with col3:
-        new_music_selected = st.radio("", ["🆕 New Music"])
-    with col4:
-        movie_soundtracks_selected = st.radio("", ["🎬 Movie Soundtracks"])
-    
-    # Determine which feature is selected
-    feature_selection = (
-        "None" if none_selected == "None"
-        else "💎 Hidden Gems" if hidden_gems_selected == "💎 Hidden Gems"
-        else "🆕 New Music" if new_music_selected == "🆕 New Music"
-        else "🎬 Movie Soundtracks"
+    # Use a single radio button for feature selection
+    feature_selection = st.radio(
+        "Select a feature for your playlist:",
+        ("None", "💎 Hidden Gems", "🆕 New Music", "🎬 Movie Soundtracks")
     )
 
     hidden_gems = feature_selection == "💎 Hidden Gems"
