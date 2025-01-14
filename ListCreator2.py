@@ -156,8 +156,9 @@ def build_system_content(hidden_gems, discover_new, songs_from_films):
         )
     if songs_from_films:
         content += (
-            "Include songs that are featured in films. "
-            "40% of the songs should be movie soundtracks. "
+            "Include songs that are featured in popular films. "
+            "40% of the songs should be movie soundtracks from top or well-known movies. "
+            "Avoid songs from child or kids-style movies like Disney movies. "
             "Mark these songs with 'is_from_film' flag. "
             "The description should mention that this includes songs from popular films. "
         )
@@ -169,7 +170,7 @@ def build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films
         f"Make sure the songs align with the mood and genres. "
         f"{'Include 40% hidden gems and lesser-known songs.' if hidden_gems else ''} "
         f"{'Include 40% songs from 2023-2024 with accurate release years.' if discover_new else ''} "
-        f"{'Include 40% songs from films.' if songs_from_films else ''} "
+        f"{'Include 40% songs from popular films, avoiding child or kids-style movies like Disney.' if songs_from_films else ''} "
         f"Ensure each song has an accurate release year as an integer."
     )
 
