@@ -372,7 +372,7 @@ def handle_playlist_creation(user_id, name, description, songs, start_time):
         # Get a unique playlist name
         unique_name = generate_unique_playlist_name(name)
         
-        st.markdown("<div style='margin-bottom: 10px'><b>Legend:</b> ⭐ = Top Hit | 💎 = Hidden Gem | 🆕 = New Music</div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-bottom: 10px'><b>Legend:</b> ⭐ = Top Hit | 💎 = Hidden Gem | 🆕 = New Music | 🎬 = Movie Soundtrack</div>", unsafe_allow_html=True)
         
         track_uris = []
         for idx, song in enumerate(songs, 1):
@@ -380,6 +380,7 @@ def handle_playlist_creation(user_id, name, description, songs, start_time):
             artist = song['artist']
             is_hidden_gem = song.get('is_hidden_gem', False)
             is_new_music = song.get('is_new_music', False)
+            is_from_film = song.get('is_from_film', False)
             
             search_response = search_tracks(st.session_state.access_token, title, artist)
             if "tracks" in search_response and search_response["tracks"]["items"]:
@@ -389,6 +390,8 @@ def handle_playlist_creation(user_id, name, description, songs, start_time):
                     icons.append("💎")
                 if is_new_music:
                     icons.append("🆕")
+                if is_from_film:
+                    icons.append("🎬")
                 if not icons:
                     icons.append("⭐")
                 year = song.get('year', 'N/A')
