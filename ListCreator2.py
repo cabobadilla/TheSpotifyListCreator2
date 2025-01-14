@@ -333,30 +333,23 @@ def display_playlist_creation_form():
     user_id = st.text_input("🎤 Enter your Spotify user ID", placeholder="Spotify Username")
     mood = st.selectbox("😊 Select your desired mood", config["moods"])
     genres = st.multiselect("🎸 Select music genres", config["genres"])
-    col1, col2, col3 = st.columns(3)
     
-    # Use feature flags to control the visibility of checkboxes
-    if feature_flags.get("hidden_gems", False):
-        with col1:
-            hidden_gems = st.checkbox("💎 Hidden Gems", help="Include lesser-known tracks in your playlist")
-    else:
-        hidden_gems = False
+    # Use radio buttons to select one feature
+    feature_selection = st.radio(
+        "Select a feature for your playlist:",
+        ("None", "💎 Hidden Gems", "🆕 New Music", "🎬 Movie Soundtracks")
+    )
     
-    if feature_flags.get("new_music", False):
-        with col2:
-            discover_new = st.checkbox("🆕 New Music", help="Include recent tracks from the last 3 years")
-    else:
-        discover_new = False
-
-    if feature_flags.get("songs_from_films", False):
-        with col3:
-            songs_from_films = st.checkbox("🎬 Movie Soundtracks", help="Include songs featured in films")
-    else:
-        songs_from_films = False
+    hidden_gems = feature_selection == "💎 Hidden Gems"
+    discover_new = feature_selection == "🆕 New Music"
+    songs_from_films = feature_selection == "🎬 Movie Soundtracks"
 
     # Show debug message if debugging is enabled
     if feature_flags.get("debugging", False):
-        st.write("🔍 Debug: New Music flag is", feature_flags.get("new_music", False))
+        st.write("🔍 Debug: Feature selected:", feature_selection)
+        st.write("🔍 Debug: Hidden Gems:", hidden_gems)
+        st.write("🔍 Debug: New Music:", discover_new)
+        st.write("🔍 Debug: Movie Soundtracks:", songs_from_films)
 
     if st.button("🎵 Generate and Create Playlist 🎵"):
         if user_id and mood and genres:
