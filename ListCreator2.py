@@ -232,11 +232,17 @@ def validate_playlist_data(playlist_data):
         song.setdefault('is_new_music', False)
 
 # Function to search for songs on Spotify
-def search_tracks(token, title, artist):
-    query = f"{title} {artist}"
+def search_tracks(token, title, artist, year):
+    # Construct a more precise query with title, artist, and year
+    query = f"track:{title} artist:{artist} year:{year}"
     url = "https://api.spotify.com/v1/search"
     headers = {"Authorization": f"Bearer {token}"}
-    params = {"q": query, "type": "track", "limit": 1}
+    params = {
+        "q": query,
+        "type": "track",
+        "limit": 5,  # Adjust limit as needed
+        "market": "US"  # Specify market if needed
+    }
     response = requests.get(url, headers=headers, params=params)
     
     if response.status_code != 200:
@@ -330,7 +336,7 @@ def handle_spotify_authentication(code):
 
 def display_playlist_creation_form():
     st.markdown("<h2>🎶 Generate and Create Playlist</h2>", unsafe_allow_html=True)
-    user_id = st.text_input("🎤 Enter your Spotify user ID", placeholder="Spotify Username")
+    user_id = st.text_input("�� Enter your Spotify user ID", placeholder="Spotify Username")
     mood = st.selectbox("😊 Select your desired mood", config["moods"])
     genres = st.multiselect("🎸 Select music genres", config["genres"])
     
@@ -391,7 +397,7 @@ def handle_playlist_creation(user_id, name, description, songs, start_time):
             is_new_music = song.get('is_new_music', False)
             is_from_film = song.get('is_from_film', False)
             
-            search_response = search_tracks(st.session_state.access_token, title, artist)
+            search_response = search_tracks(st.session_state.access_token, title, artist, song.get('year', ''))
             if "tracks" in search_response and search_response["tracks"]["items"]:
                 track_uris.append(search_response["tracks"]["items"][0]["uri"])
                 icons = []
