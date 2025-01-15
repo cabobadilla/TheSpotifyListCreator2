@@ -291,8 +291,11 @@ def generate_unique_playlist_name(desired_name):
 def main():
     st.markdown(
         """
-        <h1 style='text-align: center;'>🎵 GenAI Playlist Creator by BCG Platinion 🎵</h1>
+        <h1 style='text-align: center;'>🎵 GenAI Playlist Creator 🎵</h1>
+        <h2 style='text-align: center;'>by BCG Platinion</h2>
+        <h3 style='text-align: center;'>Create personalized playlists automatically based on your mood and favorite music by OpenAI</h3>
         <h3 style='text-align: center;'>Create personalized playlists automatically based on your mood and favorite genres with GenAI by OpenAI</h3>
+        <p style='text-align: center; color: #888;'>2025 This application doesn't store any personal data, just uses your Spotify account to create the playlist.</p>
         """,
         unsafe_allow_html=True
     )
@@ -336,7 +339,7 @@ def handle_spotify_authentication(code):
 
 def display_playlist_creation_form():
     st.markdown("<h2>🎶 Generate and Create Playlist</h2>", unsafe_allow_html=True)
-    user_id = st.text_input("�� Enter your Spotify user ID", placeholder="Spotify Username")
+    user_id = st.text_input("Enter your Spotify user ID", placeholder="Spotify Username")
     mood = st.selectbox("😊 Select your desired mood", config["moods"])
     genres = st.multiselect("🎸 Select music genres", config["genres"])
     
