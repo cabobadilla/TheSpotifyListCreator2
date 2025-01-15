@@ -339,9 +339,9 @@ def handle_spotify_authentication(code):
 
 def display_playlist_creation_form():
     st.markdown("<h2>🎶 Generate and Create Playlist</h2>", unsafe_allow_html=True)
-    user_id = st.text_input("Enter your Spotify user ID", placeholder="Spotify Username")
-    mood = st.selectbox("😊 Select your desired mood", config["moods"])
-    genres = st.multiselect("🎸 Select music genres", config["genres"])
+    user_id = st.text_input("Enter your Spotify user ID", placeholder="Spotify Username", label_visibility="collapsed")
+    mood = st.selectbox("😊 Select your desired mood", config["moods"], label_visibility="collapsed")
+    genres = st.multiselect("🎸 Select music genres", config["genres"], label_visibility="collapsed")
     
     # Determine available features based on feature flags
     available_features = ["None"]
