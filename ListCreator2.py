@@ -293,7 +293,7 @@ def main():
         """
         <h1 style='text-align: center;'>🎵 GenAI Playlist Creator 🎵</h1>
         <h2 style='text-align: center;'>by BCG Platinion</h2>
-        <h3 style='text-align: center;'>Create personalized playlists automatically based on your mood and favorite music by OpenAI</h3>
+        <h3 style='text-align: center;'>Create personalized playlists automatically based on your mood and favorite music using chatGPT</h3>
         <p style='text-align: center; color: #888;'>2025 This application doesn't store any personal data, just uses your Spotify account to create the playlist.</p>
         """,
         unsafe_allow_html=True
