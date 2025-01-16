@@ -343,7 +343,7 @@ def display_playlist_creation_form():
     genres = st.multiselect("🎸 Select music genres", config["genres"], label_visibility="collapsed")
     
     # Determine available features based on feature flags
-    available_features = ["None"]
+    available_features = ["⭐ Top Songs"]
     if feature_flags.get("hidden_gems", False):
         available_features.append("💎 Hidden Gems")
     if feature_flags.get("new_music", False):
@@ -351,15 +351,17 @@ def display_playlist_creation_form():
     if feature_flags.get("songs_from_films", False):
         available_features.append("🎬 Movie Soundtracks")
     
-    # Use a single radio button for feature selection
+    # Use a single radio button for feature selection, default to "⭐ Top Songs"
     feature_selection = st.radio(
         "Select a feature for your playlist:",
-        available_features
+        available_features,
+        index=0  # Default to the first option, "⭐ Top Songs"
     )
 
     hidden_gems = feature_selection == "💎 Hidden Gems"
     discover_new = feature_selection == "🆕 New Music"
     songs_from_films = feature_selection == "🎬 Movie Soundtracks"
+    top_songs = feature_selection == "⭐ Top Songs"
 
     # Show debug message if debugging is enabled
     if feature_flags.get("debugging", False):
@@ -367,6 +369,7 @@ def display_playlist_creation_form():
         st.write("🔍 Debug: Hidden Gems:", hidden_gems)
         st.write("🔍 Debug: New Music:", discover_new)
         st.write("🔍 Debug: Movie Soundtracks:", songs_from_films)
+        st.write("🔍 Debug: Top Songs:", top_songs)
 
     if st.button("🎵 Generate and Create Playlist 🎵"):
         if user_id and mood and genres:
@@ -375,7 +378,7 @@ def display_playlist_creation_form():
             # Start the timer
             start_time = time.time()
             
-            name, description, songs = generate_playlist_details(mood, genres, hidden_gems, discover_new, songs_from_films)
+            name, description, songs = generate_playlist_details(mood, genres, hidden_gems, discover_new, songs_from_films, top_songs)
             handle_playlist_creation(user_id, name, description, songs, start_time)
         else:
             st.warning("⚠️ Please complete all fields to create the playlist.")
