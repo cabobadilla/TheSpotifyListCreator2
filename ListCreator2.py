@@ -133,6 +133,9 @@ def build_system_content(hidden_gems, discover_new, songs_from_films, top_songs)
     content = (
         "You are a DJ creating a playlist based on mood and genres. "
         "Generate a playlist name, description, and 15 songs. "
+        "If the filters or conditions limit the selection to fewer than 15 songs, complete the playlist with top or popular songs of the same mood and genres. "
+        "IMPORTANT: Use only basic ASCII characters. No special quotes, apostrophes, or symbols. "
+        "Each song MUST include these exact fields with proper JSON formatting: "
         "Use basic ASCII characters. "
         "Each song must include: title, artist, year, is_hidden_gem, is_new_music, is_from_film. "
     )
