@@ -130,8 +130,8 @@ def build_system_content(hidden_gems, discover_new, songs_from_films):
     content = (
         "You are a music expert and DJ who curates playlists based on mood and genres. "
         "Your job is to act as a DJ and create a playlist that connects deeply with the given mood and genres. "
-        "Generate a creative playlist name (max 5 words), a description (max 25 words), and exactly 15 songs. "
-        "If the filters or conditions limit the selection to fewer than 15 songs, complete the playlist with similar songs of the same mood and genres. "
+        "Generate a creative playlist name (max 5 words), a description (max 25 words), and exactly 12 songs. "
+        "If the filters or conditions limit the selection to fewer than 12 songs, complete the playlist with similar songs of the same mood and genres. "
         "IMPORTANT: Use only basic ASCII characters. No special quotes, apostrophes, or symbols. "
         "Each song MUST include these exact fields with proper JSON formatting: "
         "title (string), artist (string), year (integer), is_hidden_gem (boolean), is_new_music (boolean), is_from_film (boolean). "
@@ -143,24 +143,24 @@ def build_system_content(hidden_gems, discover_new, songs_from_films):
     if hidden_gems:
         content += (
             "Since hidden gems mode is activated, create a more creative and unique playlist name "
-            "that reflects the underground/alternative nature of the selection. "
+            "that reflects the underground/alternative nature of the selection and songs not considered top or most popular. "
             "The description should mention that this is a special curated selection of hidden gems. "
-            "50% of songs should be lesser-known hidden gems in these genres. "
+            "40% of songs should be lesser-known hidden gems in these genres. "
             "The playlist name and description should evoke a sense of discovery and exclusivity. "
         )
     if discover_new:
         content += (
             "Since discover new music mode is activated, 50% of the songs should be from "
-            "2022 onwards. Mark these songs with 'is_new_music' flag. "
+            "2021 onwards and avoid remastered songs, should be recent or new releases. Mark these songs with 'is_new_music' flag. "
             "The description should mention that this includes recent releases. "
         )
     if songs_from_films:
         content += (
-            "Include songs that are featured in popular films. "
+            "Include songs that are featured in popular films or TV series. "
             "40% of the songs should be movie soundtracks from top or well-known movies. "
             "Avoid songs from child or kids-style movies like Disney movies. "
             "Mark these songs with 'is_from_film' flag. "
-            "The description should mention that this includes songs from popular films. "
+            "The description should mention that this includes songs from popular films or TV series. "
         )
     return content
 
