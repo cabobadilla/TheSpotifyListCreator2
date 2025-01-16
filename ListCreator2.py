@@ -378,7 +378,7 @@ def display_playlist_creation_form():
             # Start the timer
             start_time = time.time()
             
-            name, description, songs = generate_playlist_details(mood, genres, hidden_gems, discover_new)
+            name, description, songs = generate_playlist_details(mood, genres, hidden_gems, discover_new, songs_from_films)
             handle_playlist_creation(user_id, name, description, songs, start_time)
         else:
             st.warning("⚠️ Please complete all fields to create the playlist.")
