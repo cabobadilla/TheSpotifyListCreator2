@@ -130,8 +130,8 @@ def build_system_content(hidden_gems, discover_new, songs_from_films):
     content = (
         "You are a music expert and DJ who curates playlists based on mood and genres. "
         "Your job is to act as a DJ and create a playlist that connects deeply with the given mood and genres. "
-        "Generate a creative playlist name (max 5 words), a description (max 25 words), and exactly 12 songs. "
-        "If the filters or conditions limit the selection to fewer than 12 songs, complete the playlist with similar songs of the same mood and genres. "
+        "Generate a creative playlist name (max 5 words), a description (max 25 words), and exactly 15 songs. "
+        "If the filters or conditions limit the selection to fewer than 15 songs, complete the playlist with similar songs of the same mood and genres. "
         "IMPORTANT: Use only basic ASCII characters. No special quotes, apostrophes, or symbols. "
         "Each song MUST include these exact fields with proper JSON formatting: "
         "title (string), artist (string), year (integer), is_hidden_gem (boolean), is_new_music (boolean), is_from_film (boolean). "
@@ -152,7 +152,7 @@ def build_system_content(hidden_gems, discover_new, songs_from_films):
         content += (
             "Since discover new music mode is activated, 40% of the songs should be from "
             "40% of the songs should be from 2021 onwards, focusing on recent or new releases while avoiding remastered tracks. Mark these songs with the 'is_new_music' flag. "
-            "The description should emphasize that this playlist includes exciting recent releases, encouraging listeners to explore new sounds. "
+            "The name and description should emphasize that this playlist includes exciting recent releases, encouraging listeners to explore new sounds. "
         )
     if songs_from_films:
         content += (
@@ -160,7 +160,7 @@ def build_system_content(hidden_gems, discover_new, songs_from_films):
             "40% of the songs should be movie soundtracks from top or well-known movies, ensuring they resonate with a broad audience. "
             "Avoid songs from child or kids-style movies like Disney movies. "
             "Mark these songs with the 'is_from_film' flag. "
-            "The description should highlight that this playlist includes iconic songs from popular films or TV series, appealing to movie lovers. "
+            "The name and description should highlight that this playlist includes iconic songs from popular films or TV series, appealing to movie lovers. "
         )
     return content
 
