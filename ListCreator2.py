@@ -432,8 +432,23 @@ def handle_playlist_creation(user_id, name, description, songs, start_time):
                 
                 st.success(f"✅ Playlist '{unique_name}' successfully created on Spotify - created in {duration:.2f} seconds.")
                 
-                # Display a button with a link to the playlist
-                st.markdown(f"[Open Playlist on Spotify]({playlist_url})", unsafe_allow_html=True)
+                # Display a styled button with a link to the playlist
+                st.markdown(f"""
+                    <a href="{playlist_url}" target="_blank">
+                        <button style="
+                            background-color: #1DB954;
+                            color: white;
+                            font-size: 16px;
+                            border-radius: 25px;
+                            padding: 10px 20px;
+                            border: none;
+                            cursor: pointer;
+                            text-align: center;
+                            display: inline-block;
+                            margin-top: 10px;
+                        ">Enjoy your New Playlist in Spotify</button>
+                    </a>
+                """, unsafe_allow_html=True)
             else:
                 st.error("❌ Could not create playlist on Spotify.")
     else:
