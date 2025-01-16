@@ -174,13 +174,17 @@ def validate_and_clean_json(raw_response):
     
     if feature_flags.get("debugging", False):
         st.write("🔍 Debug: Processing raw response...")
+        st.code(raw_response)  # Display the raw response for debugging
     
     try:
         playlist_data = json.loads(raw_response)
         if feature_flags.get("debugging", False):
             st.write("✅ Initial JSON parsing successful")
-    except json.JSONDecodeError:
-        playlist_data = attempt_json_cleanup(raw_response)
+    except json.JSONDecodeError as e:
+        st.error(f"❌ JSON Error Details:\nPosition: {e.pos}\nLine: {e.lineno}\nColumn: {e.colno}")
+        st.error("❌ Raw Response Preview:")
+        st.code(raw_response[:200])  # Show a preview of the raw response
+        raise ValueError("Could not process JSON. Please check the response format.")
     
     validate_playlist_data(playlist_data)
     return playlist_data["name"], playlist_data["description"], playlist_data["songs"]
