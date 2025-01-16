@@ -4,8 +4,6 @@ import streamlit as st
 import requests
 from urllib.parse import urlencode
 import time
-import sqlite3
-from datetime import datetime
 
 # new File sync wth repositoy
 # version 0.761 working but issues naming the lists
@@ -79,11 +77,11 @@ def load_feature_flags():
     try:
         feature_flags = st.secrets["feature_flags"]
         if feature_flags.get("debugging", False):
-            st.write("🔍 Debug: Feature flags loaded:", feature_flags)
+            st.write("🔍 Debug: Feature flags loaded:", feature_flags)  # Debugging statement
         return feature_flags
     except KeyError:
         st.error("❌ Feature flags not found in Streamlit secrets.")
-        return {"hidden_gems": False, "new_music": False, "debugging": False, "use_database": False}
+        return {"hidden_gems": False, "new_music": False, "debugging": False}
 
 feature_flags = load_feature_flags()
 
@@ -118,24 +116,24 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
         )
         playlist_response = response.choices[0].message.content.strip()
         
-        # Log the raw response for debugging if the feature flag is enabled
+        # Show debug messages if debugging is enabled
         if feature_flags.get("debugging", False):
-            st.write("📝 Raw response received from ChatGPT:")
-            st.code(playlist_response)
+            st.write("📝 Response received from ChatGPT")
+            st.write("🔍 Response length:", len(playlist_response))
+            st.write("🔍 Playlist response content:")
+            st.code(playlist_response)  # Display the raw JSON response
         
         return validate_and_clean_json(playlist_response)
     except Exception as e:
-        if feature_flags.get("debugging", False):
-            st.error(f"❌ ChatGPT API Error: {str(e)}")
+        st.error(f"❌ ChatGPT API Error: {str(e)}")
         return None, None, []
 
 def build_system_content(hidden_gems, discover_new, songs_from_films, top_songs):
     content = (
         "You are a DJ creating a playlist based on mood and genres. "
-        "Generate a JSON object with the following structure: "
-        "{'name': 'Playlist Name', 'description': 'Playlist Description', 'songs': [list of song objects]}. "
-        "Each song object should include: title, artist, year, is_hidden_gem, is_new_music, is_from_film. "
-        "Use only basic ASCII characters. No special quotes, apostrophes, or symbols. "
+        "Generate a playlist name, description, and 15 songs. "
+        "Use basic ASCII characters. "
+        "Each song must include: title, artist, year, is_hidden_gem, is_new_music, is_from_film. "
     )
     if hidden_gems:
         content += "Include 50% hidden gems. "
@@ -172,33 +170,15 @@ def validate_and_clean_json(raw_response):
     if not raw_response:
         raise ValueError("ChatGPT response is empty.")
     
-    # Debugging: Log the raw response if the feature flag is enabled
     if feature_flags.get("debugging", False):
         st.write("🔍 Debug: Processing raw response...")
-        st.code(raw_response)  # Display the raw response for debugging
     
-    # Attempt to extract JSON from the response
     try:
-        # Find the start of the JSON object
-        json_start = raw_response.find('{')
-        if json_start == -1:
-            raise ValueError("No JSON object found in the response.")
-        
-        # Extract and parse the JSON object
-        playlist_data = json.loads(raw_response[json_start:])
+        playlist_data = json.loads(raw_response)
         if feature_flags.get("debugging", False):
             st.write("✅ Initial JSON parsing successful")
-    except json.JSONDecodeError as e:
-        if feature_flags.get("debugging", False):
-            st.error(f"❌ JSON Error Details:\nPosition: {e.pos}\nLine: {e.lineno}\nColumn: {e.colno}")
-            st.error("❌ Raw Response Preview:")
-            st.code(raw_response[:200])  # Show a preview of the raw response
-        raise ValueError("Could not process JSON. Please check the response format.")
-    
-    # Check for expected keys
-    required_keys = {"name", "description", "songs"}
-    if not required_keys.issubset(playlist_data):
-        raise ValueError(f"JSON does not contain expected keys {required_keys}.")
+    except json.JSONDecodeError:
+        playlist_data = attempt_json_cleanup(raw_response)
     
     validate_playlist_data(playlist_data)
     return playlist_data["name"], playlist_data["description"], playlist_data["songs"]
@@ -298,14 +278,64 @@ def generate_unique_playlist_name(desired_name):
     
     return unique_name
 
-# Function to check if the token is valid
 def is_token_valid(token):
+    # Check if the token is valid by making a simple request
     url = "https://api.spotify.com/v1/me"
     headers = {"Authorization": f"Bearer {token}"}
     response = requests.get(url, headers=headers)
     return response.status_code == 200
 
-# Function to handle Spotify authentication
+def refresh_token():
+    # Refresh the token using the refresh token
+    refresh_token = st.secrets["SPOTIFY_REFRESH_TOKEN"]
+    response = requests.post(
+        "https://accounts.spotify.com/api/token",
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        data={
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET,
+        },
+    ).json()
+    if "access_token" in response:
+        st.session_state.access_token = response["access_token"]
+        return True
+    else:
+        st.error("❌ Could not refresh token.")
+        return False
+
+# Streamlit App
+def main():
+    st.markdown(
+        """
+        <h1 style='text-align: center;'>🎵 GenAI Playlist Creator 🎵</h1>
+        <h2 style='text-align: center;'>by BCG Platinion 🤖 ❤️</h2>
+        <h3 style='text-align: center;'>Create personalized playlists automatically based on your mood and favorite music using chatGPT</h3>
+        <p style='text-align: center; color: #888;'>2025 This application doesn't store any personal data, just uses your Spotify account to create the playlist.</p>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    st.markdown("<h2 style='color: #1DB954;'>🔑 Authentication</h2>", unsafe_allow_html=True)
+    if "access_token" not in st.session_state:
+        display_authentication_link()
+    else:
+        st.success("✅ Already authenticated.")
+
+    if "access_token" in st.session_state:
+        display_playlist_creation_form()
+
+def display_authentication_link():
+    auth_url = get_auth_url(CLIENT_ID, REDIRECT_URI, SCOPES)
+    st.markdown(
+        f"<div style='text-align: center;'><a href='{auth_url}' target='_blank' style='color: #1DB954; font-weight: bold;'>🔑 Login with Spotify</a></div>",
+        unsafe_allow_html=True
+    )
+    query_params = st.query_params
+    if "code" in query_params:
+        handle_spotify_authentication(query_params["code"])
+
 def handle_spotify_authentication(code):
     token_response = requests.post(
         "https://accounts.spotify.com/api/token",
@@ -323,40 +353,6 @@ def handle_spotify_authentication(code):
         st.success("✅ Authentication completed.")
     else:
         st.error("❌ Authentication error.")
-
-# Function to display the authentication link
-def display_authentication_link():
-    auth_url = get_auth_url(CLIENT_ID, REDIRECT_URI, SCOPES)
-    st.markdown(
-        f"<div style='text-align: center;'><a href='{auth_url}' target='_blank' style='color: #1DB954; font-weight: bold;'>🔑 Login with Spotify</a></div>",
-        unsafe_allow_html=True
-    )
-    query_params = st.query_params
-    if "code" in query_params:
-        handle_spotify_authentication(query_params["code"])
-
-# Main function to display the app
-def main():
-    st.markdown(
-        """
-        <h1 style='text-align: center;'>🎵 GenAI Playlist Creator 🎵</h1>
-        <h2 style='text-align: center;'>by BCG Platinion 🤖 ❤️</h2>
-        <h3 style='text-align: center;'>Create personalized playlists automatically based on your mood and favorite music using chatGPT</h3>
-        <p style='text-align: center; color: #888;'>2025 This application doesn't store any personal data, just uses your Spotify account to create the playlist.</p>
-        """,
-        unsafe_allow_html=True
-    )
-    
-    st.markdown("<h2 style='color: #1DB954;'>🔑 Authentication</h2>", unsafe_allow_html=True)
-    if "access_token" not in st.session_state:
-        display_authentication_link()
-    else:
-        if not is_token_valid(st.session_state.access_token):
-            st.warning("⚠️ Your session has expired. Please re-authenticate.")
-            display_authentication_link()
-        else:
-            st.success("✅ Already authenticated.")
-            display_playlist_creation_form()
 
 def display_playlist_creation_form():
     st.markdown("<h2>🎶 Generate and Create Playlist</h2>", unsafe_allow_html=True)
@@ -478,48 +474,10 @@ def handle_playlist_creation(user_id, name, description, songs, start_time):
                         ">Enjoy your New Playlist in Spotify</button>
                     </a>
                 """, unsafe_allow_html=True)
-                
-                # Save playlist information to the database
-                save_playlist_info(user_id, songs, True, playlist_url)
             else:
                 st.error("❌ Could not create playlist on Spotify.")
-                save_playlist_info(user_id, songs, False)
     else:
         st.error("❌ Could not generate playlist.")
-        save_playlist_info(user_id, songs, False)
-
-def save_playlist_info(user_id, songs, success, playlist_uri=None):
-    if feature_flags.get("use_database", False):
-        # Connect to the SQLite database (or create it if it doesn't exist)
-        conn = sqlite3.connect('playlist_info.db')
-        cursor = conn.cursor()
-        
-        # Create a table if it doesn't exist
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS playlists (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                date_time TEXT,
-                user_id TEXT,
-                songs_json TEXT,
-                success INTEGER,
-                playlist_uri TEXT
-            )
-        ''')
-        
-        # Prepare data to insert
-        date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        songs_json = json.dumps(songs)
-        success_flag = 1 if success else 0
-        
-        # Insert the playlist information
-        cursor.execute('''
-            INSERT INTO playlists (date_time, user_id, songs_json, success, playlist_uri)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (date_time, user_id, songs_json, success_flag, playlist_uri))
-        
-        # Commit the transaction and close the connection
-        conn.commit()
-        conn.close()
 
 if __name__ == "__main__":
     main()
