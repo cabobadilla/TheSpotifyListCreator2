@@ -150,17 +150,17 @@ def build_system_content(hidden_gems, discover_new, songs_from_films):
         )
     if discover_new:
         content += (
-            "Since discover new music mode is activated, 40% of the songs should be from "
+            "Since discover new music mode is activated, 40% of the songs should be from 2021 onward"
             "40% of the songs should be from 2021 onwards, focusing on recent or new releases while avoiding remastered tracks. Mark these songs with the 'is_new_music' flag. "
             "The name and description should emphasize that this playlist includes exciting recent releases, encouraging listeners to explore new sounds. "
         )
     if songs_from_films:
         content += (
-            "Include songs that are featured in popular films or TV series. "
-            "40% of the songs should be movie soundtracks from top or well-known movies, ensuring they resonate with a broad audience. "
-            "Avoid songs from child or kids-style movies like Disney movies. "
-            "Mark these songs with the 'is_from_film' flag. "
-            "The name and description should highlight that this playlist includes iconic songs from popular films or TV series, appealing to movie lovers. "
+            "Include songs that are prominently featured in popular films or TV series, ensuring they are integral to the storyline or memorable scenes. "
+            "Aim for 40% of the songs to be iconic soundtracks from critically acclaimed or commercially successful movies, appealing to a wide audience. "
+            "Avoid songs from children's films or animated features, such as those produced by Disney, to maintain a more mature and diverse selection. "
+            "Clearly mark these songs with the 'is_from_film' flag. "
+            "The playlist name and description should emphasize that it showcases unforgettable tracks from beloved films and series, enticing movie enthusiasts and fans of cinematic music."
         )
     return content
 
