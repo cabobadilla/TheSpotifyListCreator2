@@ -79,11 +79,11 @@ def load_feature_flags():
     try:
         feature_flags = st.secrets["feature_flags"]
         if feature_flags.get("debugging", False):
-            st.write("🔍 Debug: Feature flags loaded:", feature_flags)  # Debugging statement
+            st.write("🔍 Debug: Feature flags loaded:", feature_flags)
         return feature_flags
     except KeyError:
         st.error("❌ Feature flags not found in Streamlit secrets.")
-        return {"hidden_gems": False, "new_music": False, "debugging": False}
+        return {"hidden_gems": False, "new_music": False, "debugging": False, "use_database": False}
 
 feature_flags = load_feature_flags()
 
@@ -118,16 +118,15 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
         )
         playlist_response = response.choices[0].message.content.strip()
         
-        # Show debug messages if debugging is enabled
+        # Log the raw response for debugging if the feature flag is enabled
         if feature_flags.get("debugging", False):
-            st.write("📝 Response received from ChatGPT")
-            st.write("🔍 Response length:", len(playlist_response))
-            st.write("🔍 Playlist response content:")
-            st.code(playlist_response)  # Display the raw JSON response
+            st.write("📝 Raw response received from ChatGPT:")
+            st.code(playlist_response)
         
         return validate_and_clean_json(playlist_response)
     except Exception as e:
-        st.error(f"❌ ChatGPT API Error: {str(e)}")
+        if feature_flags.get("debugging", False):
+            st.error(f"❌ ChatGPT API Error: {str(e)}")
         return None, None, []
 
 def build_system_content(hidden_gems, discover_new, songs_from_films, top_songs):
@@ -172,6 +171,7 @@ def validate_and_clean_json(raw_response):
     if not raw_response:
         raise ValueError("ChatGPT response is empty.")
     
+    # Debugging: Log the raw response if the feature flag is enabled
     if feature_flags.get("debugging", False):
         st.write("🔍 Debug: Processing raw response...")
         st.code(raw_response)  # Display the raw response for debugging
@@ -181,9 +181,10 @@ def validate_and_clean_json(raw_response):
         if feature_flags.get("debugging", False):
             st.write("✅ Initial JSON parsing successful")
     except json.JSONDecodeError as e:
-        st.error(f"❌ JSON Error Details:\nPosition: {e.pos}\nLine: {e.lineno}\nColumn: {e.colno}")
-        st.error("❌ Raw Response Preview:")
-        st.code(raw_response[:200])  # Show a preview of the raw response
+        if feature_flags.get("debugging", False):
+            st.error(f"❌ JSON Error Details:\nPosition: {e.pos}\nLine: {e.lineno}\nColumn: {e.colno}")
+            st.error("❌ Raw Response Preview:")
+            st.code(raw_response[:200])  # Show a preview of the raw response
         raise ValueError("Could not process JSON. Please check the response format.")
     
     validate_playlist_data(playlist_data)
@@ -312,36 +313,37 @@ def refresh_token():
         return False
 
 def save_playlist_info(user_id, songs, success, playlist_uri=None):
-    # Connect to the SQLite database (or create it if it doesn't exist)
-    conn = sqlite3.connect('playlist_info.db')
-    cursor = conn.cursor()
-    
-    # Create a table if it doesn't exist
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS playlists (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date_time TEXT,
-            user_id TEXT,
-            songs_json TEXT,
-            success INTEGER,
-            playlist_uri TEXT
-        )
-    ''')
-    
-    # Prepare data to insert
-    date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    songs_json = json.dumps(songs)
-    success_flag = 1 if success else 0
-    
-    # Insert the playlist information
-    cursor.execute('''
-        INSERT INTO playlists (date_time, user_id, songs_json, success, playlist_uri)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (date_time, user_id, songs_json, success_flag, playlist_uri))
-    
-    # Commit the transaction and close the connection
-    conn.commit()
-    conn.close()
+    if feature_flags.get("use_database", False):
+        # Connect to the SQLite database (or create it if it doesn't exist)
+        conn = sqlite3.connect('playlist_info.db')
+        cursor = conn.cursor()
+        
+        # Create a table if it doesn't exist
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS playlists (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date_time TEXT,
+                user_id TEXT,
+                songs_json TEXT,
+                success INTEGER,
+                playlist_uri TEXT
+            )
+        ''')
+        
+        # Prepare data to insert
+        date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        songs_json = json.dumps(songs)
+        success_flag = 1 if success else 0
+        
+        # Insert the playlist information
+        cursor.execute('''
+            INSERT INTO playlists (date_time, user_id, songs_json, success, playlist_uri)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (date_time, user_id, songs_json, success_flag, playlist_uri))
+        
+        # Commit the transaction and close the connection
+        conn.commit()
+        conn.close()
 
 # Streamlit App
 def main():
