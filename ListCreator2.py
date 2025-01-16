@@ -120,6 +120,8 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
         if feature_flags.get("debugging", False):
             st.write("📝 Response received from ChatGPT")
             st.write("🔍 Response length:", len(playlist_response))
+            st.write("🔍 Playlist response content:")
+            st.code(playlist_response)
         
         return validate_and_clean_json(playlist_response)
     except Exception as e:
