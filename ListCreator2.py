@@ -292,6 +292,33 @@ def generate_unique_playlist_name(desired_name):
     
     return unique_name
 
+def is_token_valid(token):
+    # Check if the token is valid by making a simple request
+    url = "https://api.spotify.com/v1/me"
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(url, headers=headers)
+    return response.status_code == 200
+
+def refresh_token():
+    # Refresh the token using the refresh token
+    refresh_token = st.secrets["SPOTIFY_REFRESH_TOKEN"]
+    response = requests.post(
+        "https://accounts.spotify.com/api/token",
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        data={
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET,
+        },
+    ).json()
+    if "access_token" in response:
+        st.session_state.access_token = response["access_token"]
+        return True
+    else:
+        st.error("❌ Could not refresh token.")
+        return False
+
 # Streamlit App
 def main():
     st.markdown(
@@ -366,7 +393,6 @@ def display_playlist_creation_form():
     hidden_gems = feature_selection == "💎 Hidden Gems"
     discover_new = feature_selection == "🆕 New Music"
     songs_from_films = feature_selection == "🎬 Movie Soundtracks"
-    top_songs = feature_selection == "⭐ Top Songs"
 
     # Show debug message if debugging is enabled
     if feature_flags.get("debugging", False):
@@ -374,11 +400,17 @@ def display_playlist_creation_form():
         st.write("🔍 Debug: Hidden Gems:", hidden_gems)
         st.write("🔍 Debug: New Music:", discover_new)
         st.write("🔍 Debug: Movie Soundtracks:", songs_from_films)
-        st.write("🔍 Debug: Top Songs:", top_songs)
 
     if st.button("🎵 Generate and Create Playlist 🎵"):
         if user_id and mood and genres:
             st.info("🎧 Generating songs, name and description...")
+            
+            # Check if the token is valid
+            if not is_token_valid(st.session_state.access_token):
+                st.info("🔄 Refreshing token...")
+                if not refresh_token():
+                    st.error("❌ Could not refresh token. Please re-authenticate.")
+                    return
             
             # Start the timer
             start_time = time.time()
