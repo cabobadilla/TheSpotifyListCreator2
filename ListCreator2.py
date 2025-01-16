@@ -288,97 +288,14 @@ def generate_unique_playlist_name(desired_name):
     
     return unique_name
 
+# Function to check if the token is valid
 def is_token_valid(token):
-    # Check if the token is valid by making a simple request
     url = "https://api.spotify.com/v1/me"
     headers = {"Authorization": f"Bearer {token}"}
     response = requests.get(url, headers=headers)
     return response.status_code == 200
 
-def refresh_token():
-    # Refresh the token using the refresh token
-    refresh_token = st.secrets["SPOTIFY_REFRESH_TOKEN"]
-    response = requests.post(
-        "https://accounts.spotify.com/api/token",
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        data={
-            "grant_type": "refresh_token",
-            "refresh_token": refresh_token,
-            "client_id": CLIENT_ID,
-            "client_secret": CLIENT_SECRET,
-        },
-    ).json()
-    if "access_token" in response:
-        st.session_state.access_token = response["access_token"]
-        return True
-    else:
-        st.error("❌ Could not refresh token.")
-        return False
-
-def save_playlist_info(user_id, songs, success, playlist_uri=None):
-    if feature_flags.get("use_database", False):
-        # Connect to the SQLite database (or create it if it doesn't exist)
-        conn = sqlite3.connect('playlist_info.db')
-        cursor = conn.cursor()
-        
-        # Create a table if it doesn't exist
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS playlists (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                date_time TEXT,
-                user_id TEXT,
-                songs_json TEXT,
-                success INTEGER,
-                playlist_uri TEXT
-            )
-        ''')
-        
-        # Prepare data to insert
-        date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        songs_json = json.dumps(songs)
-        success_flag = 1 if success else 0
-        
-        # Insert the playlist information
-        cursor.execute('''
-            INSERT INTO playlists (date_time, user_id, songs_json, success, playlist_uri)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (date_time, user_id, songs_json, success_flag, playlist_uri))
-        
-        # Commit the transaction and close the connection
-        conn.commit()
-        conn.close()
-
-# Streamlit App
-def main():
-    st.markdown(
-        """
-        <h1 style='text-align: center;'>🎵 GenAI Playlist Creator 🎵</h1>
-        <h2 style='text-align: center;'>by BCG Platinion 🤖 ❤️</h2>
-        <h3 style='text-align: center;'>Create personalized playlists automatically based on your mood and favorite music using chatGPT</h3>
-        <p style='text-align: center; color: #888;'>2025 This application doesn't store any personal data, just uses your Spotify account to create the playlist.</p>
-        """,
-        unsafe_allow_html=True
-    )
-    
-    st.markdown("<h2 style='color: #1DB954;'>🔑 Authentication</h2>", unsafe_allow_html=True)
-    if "access_token" not in st.session_state:
-        display_authentication_link()
-    else:
-        st.success("✅ Already authenticated.")
-
-    if "access_token" in st.session_state:
-        display_playlist_creation_form()
-
-def display_authentication_link():
-    auth_url = get_auth_url(CLIENT_ID, REDIRECT_URI, SCOPES)
-    st.markdown(
-        f"<div style='text-align: center;'><a href='{auth_url}' target='_blank' style='color: #1DB954; font-weight: bold;'>🔑 Login with Spotify</a></div>",
-        unsafe_allow_html=True
-    )
-    query_params = st.query_params
-    if "code" in query_params:
-        handle_spotify_authentication(query_params["code"])
-
+# Function to handle Spotify authentication
 def handle_spotify_authentication(code):
     token_response = requests.post(
         "https://accounts.spotify.com/api/token",
@@ -396,6 +313,40 @@ def handle_spotify_authentication(code):
         st.success("✅ Authentication completed.")
     else:
         st.error("❌ Authentication error.")
+
+# Function to display the authentication link
+def display_authentication_link():
+    auth_url = get_auth_url(CLIENT_ID, REDIRECT_URI, SCOPES)
+    st.markdown(
+        f"<div style='text-align: center;'><a href='{auth_url}' target='_blank' style='color: #1DB954; font-weight: bold;'>🔑 Login with Spotify</a></div>",
+        unsafe_allow_html=True
+    )
+    query_params = st.query_params
+    if "code" in query_params:
+        handle_spotify_authentication(query_params["code"])
+
+# Main function to display the app
+def main():
+    st.markdown(
+        """
+        <h1 style='text-align: center;'>🎵 GenAI Playlist Creator 🎵</h1>
+        <h2 style='text-align: center;'>by BCG Platinion 🤖 ❤️</h2>
+        <h3 style='text-align: center;'>Create personalized playlists automatically based on your mood and favorite music using chatGPT</h3>
+        <p style='text-align: center; color: #888;'>2025 This application doesn't store any personal data, just uses your Spotify account to create the playlist.</p>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    st.markdown("<h2 style='color: #1DB954;'>🔑 Authentication</h2>", unsafe_allow_html=True)
+    if "access_token" not in st.session_state:
+        display_authentication_link()
+    else:
+        if not is_token_valid(st.session_state.access_token):
+            st.warning("⚠️ Your session has expired. Please re-authenticate.")
+            display_authentication_link()
+        else:
+            st.success("✅ Already authenticated.")
+            display_playlist_creation_form()
 
 def display_playlist_creation_form():
     st.markdown("<h2>🎶 Generate and Create Playlist</h2>", unsafe_allow_html=True)
