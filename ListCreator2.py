@@ -97,10 +97,10 @@ def get_auth_url(client_id, redirect_uri, scopes):
     return f"{auth_url}?{urlencode(params)}"
 
 # Function to generate songs, playlist name, and description using ChatGPT
-def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=False, songs_from_films=False, top_songs=False):
+def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=False, songs_from_films=False):
     client = openai.OpenAI(api_key=OPENAI_API_KEY)
-    system_content = build_system_content(hidden_gems, discover_new, songs_from_films, top_songs)
-    user_content = build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films, top_songs)
+    system_content = build_system_content(hidden_gems, discover_new, songs_from_films)
+    user_content = build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films)
     
     messages = [
         {"role": "system", "content": system_content},
@@ -112,7 +112,7 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
             model="gpt-3.5-turbo",
             messages=messages,
             max_tokens=1500,
-            temperature=0.8 if hidden_gems or discover_new or songs_from_films or top_songs else 0.7,
+            temperature=0.8 if hidden_gems or discover_new else 0.7,
         )
         playlist_response = response.choices[0].message.content.strip()
         
@@ -128,40 +128,56 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
         st.error(f"❌ ChatGPT API Error: {str(e)}")
         return None, None, []
 
-def build_system_content(hidden_gems, discover_new, songs_from_films, top_songs):
+def build_system_content(hidden_gems, discover_new, songs_from_films):
     content = (
-        "You are a DJ creating a playlist based on mood and genres. "
-        "Generate a playlist name, description, and 15 songs. "
-        "Use basic ASCII characters. "
-        "Each song must include: title, artist, year, is_hidden_gem, is_new_music, is_from_film. "
+        "You are a music expert and DJ who curates playlists based on mood and genres. "
+        "Your job is to act as a DJ and create a playlist that connects deeply with the given mood and genres. "
+        "Generate a creative playlist name (max 5 words), a description (max 25 words), and exactly 15 songs. "
+        "If the filters or conditions limit the selection to fewer than 15 songs, complete the playlist with top or popular songs of the same mood and genres. "
+        "IMPORTANT: Use only basic ASCII characters. No special quotes, apostrophes, or symbols. "
+        "Each song MUST include these exact fields with proper JSON formatting: "
+        "title (string), artist (string), year (integer), is_hidden_gem (boolean), is_new_music (boolean), is_from_film (boolean). "
+        'RESPOND WITH ONLY THE FOLLOWING JSON STRUCTURE, NO OTHER TEXT: '
+        '{"name": "Simple Name", "description": "Simple description", "songs": ['
+        '{"title": "Song Name", "artist": "Artist Name", "year": 2024, "is_hidden_gem": false, "is_new_music": false, "is_from_film": false}'
+        ']}'
     )
-    if hidden_gems:
-        content += "Include 50% hidden gems. "
-    elif discover_new:
-        content += "Include 50% new music from 2022 onwards. "
-    elif songs_from_films:
+    if hidden_gems or discover_new or songs_from_films:
         content += (
-            "Include 40% movie soundtracks from top films, avoiding kids' movies. "
+            "When generating the playlist, ensure that the selection of songs still meets the requirement of 15 songs. "
+            "If the chosen filters limit the selection, fill in the remaining slots with top or popular songs that fit the overall mood and genres. "
         )
-    elif top_songs:
-        content += "Focus on top songs of the selected music genre and mood. "
+    if hidden_gems:
+        content += (
+            "Since hidden gems mode is activated, create a more creative and unique playlist name "
+            "that reflects the underground/alternative nature of the selection and songs not considered top or most popular. "
+            "The description should mention that this is a special curated selection of hidden gems. "
+            "40% of songs should be lesser-known hidden gems in these genres, ensuring they are not mainstream hits. "
+            "The playlist name and description should evoke a sense of discovery and exclusivity, highlighting the unique nature of these selections. "
+        )
+    if discover_new:
+        content += (
+            "Since discover new music mode is activated, 40% of the songs should be from 2021 onward, "
+            "focusing on recent or new releases while avoiding remastered tracks. Mark these songs with the 'is_new_music' flag. "
+            "The name and description should emphasize that this playlist includes exciting recent releases, encouraging listeners to explore new sounds. "
+        )
+    if songs_from_films:
+        content += (
+            "Include songs that are prominently featured in popular films or TV series, ensuring they are integral to the storyline or memorable scenes. "
+            "Aim for 40% of the songs to be iconic soundtracks from critically acclaimed or commercially successful movies, appealing to a wide audience. "
+            "Avoid songs from children's films or animated features, such as those produced by Disney, to maintain a more mature and diverse selection. "
+            "Clearly mark these songs with the 'is_from_film' flag. "
+            "The playlist name and description should emphasize that it showcases unforgettable tracks from beloved films and series, enticing movie enthusiasts and fans of cinematic music."
+        )
     return content
 
-def build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films, top_songs):
-    feature_description = ""
-    if hidden_gems:
-        feature_description = "Include 50% hidden gems."
-    elif discover_new:
-        feature_description = "Include 50% songs from 2023-2024."
-    elif songs_from_films:
-        feature_description = "Include 40% songs from popular films, avoiding kids' movies."
-    elif top_songs:
-        feature_description = "Focus on top songs of the selected music genre and mood."
-
+def build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films):
     return (
         f"Create a playlist for the mood '{mood}' and genres {', '.join(genres)}. "
         f"Make sure the songs align with the mood and genres. "
-        f"{feature_description} "
+        f"{'Include 40% hidden gems and lesser-known songs that are not mainstream.' if hidden_gems else ''} "
+        f"{'Include 40% songs from 2021 onwards with accurate release years.' if discover_new else ''} "
+        f"{'Include 40% songs from popular films, avoiding child or kids-style movies like Disney.' if songs_from_films else ''} "
         f"Ensure each song has an accurate release year as an integer."
     )
 
@@ -379,7 +395,6 @@ def display_playlist_creation_form():
     hidden_gems = feature_selection == "💎 Hidden Gems"
     discover_new = feature_selection == "🆕 New Music"
     songs_from_films = feature_selection == "🎬 Movie Soundtracks"
-    top_songs = feature_selection == "⭐ Top Songs"
 
     # Show debug message if debugging is enabled
     if feature_flags.get("debugging", False):
@@ -387,7 +402,6 @@ def display_playlist_creation_form():
         st.write("🔍 Debug: Hidden Gems:", hidden_gems)
         st.write("🔍 Debug: New Music:", discover_new)
         st.write("🔍 Debug: Movie Soundtracks:", songs_from_films)
-        st.write("🔍 Debug: Top Songs:", top_songs)
 
     if st.button("🎵 Generate and Create Playlist 🎵"):
         if user_id and mood and genres:
@@ -403,7 +417,7 @@ def display_playlist_creation_form():
             # Start the timer
             start_time = time.time()
             
-            name, description, songs = generate_playlist_details(mood, genres, hidden_gems, discover_new, songs_from_films, top_songs)
+            name, description, songs = generate_playlist_details(mood, genres, hidden_gems, discover_new, songs_from_films)
             handle_playlist_creation(user_id, name, description, songs, start_time)
         else:
             st.warning("⚠️ Please complete all fields to create the playlist.")
