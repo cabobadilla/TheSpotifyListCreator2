@@ -132,12 +132,10 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
 def build_system_content(hidden_gems, discover_new, songs_from_films, top_songs):
     content = (
         "You are a DJ creating a playlist based on mood and genres. "
-        "Generate a playlist name, description, and 15 songs. "
-        "If the filters or conditions limit the selection to fewer than 15 songs, complete the playlist with top or popular songs of the same mood and genres. "
-        "IMPORTANT: Use only basic ASCII characters. No special quotes, apostrophes, or symbols. "
-        "Each song MUST include these exact fields with proper JSON formatting: "
-        "Use basic ASCII characters. "
-        "Each song must include: title, artist, year, is_hidden_gem, is_new_music, is_from_film. "
+        "Generate a JSON object with the following structure: "
+        "{'name': 'Playlist Name', 'description': 'Playlist Description', 'songs': [list of song objects]}. "
+        "Each song object should include: title, artist, year, is_hidden_gem, is_new_music, is_from_film. "
+        "Use only basic ASCII characters. No special quotes, apostrophes, or symbols. "
     )
     if hidden_gems:
         content += "Include 50% hidden gems. "
@@ -179,8 +177,15 @@ def validate_and_clean_json(raw_response):
         st.write("🔍 Debug: Processing raw response...")
         st.code(raw_response)  # Display the raw response for debugging
     
+    # Attempt to extract JSON from the response
     try:
-        playlist_data = json.loads(raw_response)
+        # Find the start of the JSON object
+        json_start = raw_response.find('{')
+        if json_start == -1:
+            raise ValueError("No JSON object found in the response.")
+        
+        # Extract and parse the JSON object
+        playlist_data = json.loads(raw_response[json_start:])
         if feature_flags.get("debugging", False):
             st.write("✅ Initial JSON parsing successful")
     except json.JSONDecodeError as e:
