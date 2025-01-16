@@ -190,6 +190,11 @@ def validate_and_clean_json(raw_response):
             st.code(raw_response[:200])  # Show a preview of the raw response
         raise ValueError("Could not process JSON. Please check the response format.")
     
+    # Check for expected keys
+    required_keys = {"name", "description", "songs"}
+    if not required_keys.issubset(playlist_data):
+        raise ValueError(f"JSON does not contain expected keys {required_keys}.")
+    
     validate_playlist_data(playlist_data)
     return playlist_data["name"], playlist_data["description"], playlist_data["songs"]
 
