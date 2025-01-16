@@ -427,7 +427,13 @@ def handle_playlist_creation(user_id, name, description, songs, start_time):
                 end_time = time.time()
                 duration = end_time - start_time
                 
+                # Generate Spotify URL from URI
+                playlist_url = f"https://open.spotify.com/playlist/{playlist_id}"
+                
                 st.success(f"✅ Playlist '{unique_name}' successfully created on Spotify - created in {duration:.2f} seconds.")
+                
+                # Display a button with a link to the playlist
+                st.markdown(f"[Open Playlist on Spotify]({playlist_url})", unsafe_allow_html=True)
             else:
                 st.error("❌ Could not create playlist on Spotify.")
     else:
