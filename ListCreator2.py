@@ -468,11 +468,11 @@ def display_playlist_creation_form():
             start_time = time.time()
             
             name, description, songs = generate_playlist_details(mood, genres, hidden_gems, discover_new, songs_from_films)
-            handle_playlist_creation(user_id, name, description, songs, start_time)
+            handle_playlist_creation(user_id, name, description, songs, start_time, feature_selection)
         else:
             st.warning("⚠️ Please complete all fields to create the playlist.")
 
-def handle_playlist_creation(user_id, name, description, songs, start_time):
+def handle_playlist_creation(user_id, name, description, songs, start_time, feature_selection):
     if name and description and songs:
         st.success(f"✅ Generated name: {name}")
         st.info(f"📜 Generated description: {description}")
