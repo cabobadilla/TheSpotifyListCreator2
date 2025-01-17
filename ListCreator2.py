@@ -322,7 +322,7 @@ def refresh_token():
         st.error("❌ Could not refresh token.")
         return False
 
-def save_playlist_data(user_id, playlist_name, status):
+def save_playlist_data(user_id, playlist_name, status, playlist_uri, num_songs, feature_selected):
     if feature_flags.get("playlist_data_record", False):
         # Get the connection string and database name from Streamlit secrets
         connection_string = st.secrets["mongodb"]["connection_string"]
@@ -349,7 +349,10 @@ def save_playlist_data(user_id, playlist_name, status):
                 "spotify_user_id": user_id,
                 "date_time": date_time,
                 "playlist_name": playlist_name,
-                "status": status
+                "status": status,
+                "playlist_uri": playlist_uri,
+                "num_songs": num_songs,
+                "feature_selected": feature_selected
             }
 
             # Debugging: Log the data to be inserted
@@ -537,13 +540,13 @@ def handle_playlist_creation(user_id, name, description, songs, start_time):
                 """, unsafe_allow_html=True)
 
                 # Save playlist data
-                save_playlist_data(user_id, unique_name, "created")
+                save_playlist_data(user_id, unique_name, "created", playlist_url, len(songs), feature_selection)
             else:
                 st.error("❌ Could not create playlist on Spotify.")
-                save_playlist_data(user_id, unique_name, "fail")
+                save_playlist_data(user_id, unique_name, "fail", "", 0, "")
     else:
         st.error("❌ Could not generate playlist.")
-        save_playlist_data(user_id, name, "fail")
+        save_playlist_data(user_id, name, "fail", "", 0, "")
 
 if __name__ == "__main__":
     main()
