@@ -5,11 +5,7 @@ import requests
 from urllib.parse import urlencode
 import time
 
-# new File sync wth repositoy
-# version 0.761 working but issues naming the lists
-# version 0.762 fixed the issue with repeated playlist names
-# version 0.767 working ok
-# version 0.769 just adding dif style
+#v0.963 working session
 
 # Estilo de Spotify (colores verde y negro)
 st.markdown(
