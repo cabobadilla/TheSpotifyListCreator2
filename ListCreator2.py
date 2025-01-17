@@ -323,11 +323,16 @@ def refresh_token():
 
 def save_playlist_data(user_id, playlist_name, status):
     if feature_flags.get("playlist_data_record", False):
-        # Get the connection string and database name from Streamlit secrets
+        # Get the connection string, database name, and table name from Streamlit secrets
         connection_string = st.secrets["database"]["connection_string"]
         database_name = st.secrets["database"]["name"]
+        table_name = st.secrets["database"]["table_name"]
 
         try:
+            # Debugging: Log the start of the database connection process
+            if feature_flags.get("debugging", False):
+                st.write("🔍 Debug: Attempting to connect to the database.")
+
             # Connect to the SQLite Cloud database
             conn = sqlite3.connect(connection_string)
             cursor = conn.cursor()
@@ -338,7 +343,7 @@ def save_playlist_data(user_id, playlist_name, status):
 
             # Create a table if it doesn't exist
             cursor.execute(f'''
-                CREATE TABLE IF NOT EXISTS {database_name} (
+                CREATE TABLE IF NOT EXISTS {table_name} (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     spotify_user_id TEXT,
                     date_time TEXT,
@@ -346,6 +351,10 @@ def save_playlist_data(user_id, playlist_name, status):
                     status TEXT
                 )
             ''')
+
+            # Debugging: Log the table creation status
+            if feature_flags.get("debugging", False):
+                st.write(f"🔍 Debug: Table '{table_name}' checked/created successfully.")
 
             # Prepare data to insert
             date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -357,15 +366,14 @@ def save_playlist_data(user_id, playlist_name, status):
 
             # Insert the playlist information
             cursor.execute(f'''
-                INSERT INTO {database_name} (spotify_user_id, date_time, playlist_name, status)
+                INSERT INTO {table_name} (spotify_user_id, date_time, playlist_name, status)
                 VALUES (?, ?, ?, ?)
             ''', (user_id, date_time, playlist_name, status))
 
-            # Commit the transaction and close the connection
+            # Commit the transaction
             conn.commit()
-            conn.close()
 
-            # Debugging: Log the success of the operation
+            # Debugging: Log the success of the data insertion
             if feature_flags.get("debugging", False):
                 st.write("🔍 Debug: Data inserted successfully.")
 
@@ -373,6 +381,12 @@ def save_playlist_data(user_id, playlist_name, status):
             st.error(f"❌ Database error: {e}")
             if feature_flags.get("debugging", False):
                 st.write("🔍 Debug: Failed to insert data into the database.")
+
+        finally:
+            # Close the connection
+            conn.close()
+            if feature_flags.get("debugging", False):
+                st.write("🔍 Debug: Database connection closed.")
 
 # Streamlit App
 def main():
