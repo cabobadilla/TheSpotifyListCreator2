@@ -4,6 +4,8 @@ import streamlit as st
 import requests
 from urllib.parse import urlencode
 import time
+import sqlite3
+from datetime import datetime
 
 #v0.963 working session
 
@@ -319,6 +321,40 @@ def refresh_token():
         st.error("❌ Could not refresh token.")
         return False
 
+def save_playlist_data(user_id, playlist_name, status):
+    if feature_flags.get("playlist_data_record", False):
+        # Get the connection string and database name from Streamlit secrets
+        connection_string = st.secrets["database"]["connection_string"]
+        database_name = st.secrets["database"]["name"]
+
+        # Connect to the SQLite Cloud database
+        conn = sqlite3.connect(connection_string)
+        cursor = conn.cursor()
+
+        # Create a table if it doesn't exist
+        cursor.execute(f'''
+            CREATE TABLE IF NOT EXISTS {database_name} (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                spotify_user_id TEXT,
+                date_time TEXT,
+                playlist_name TEXT,
+                status TEXT
+            )
+        ''')
+
+        # Prepare data to insert
+        date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Insert the playlist information
+        cursor.execute(f'''
+            INSERT INTO {database_name} (spotify_user_id, date_time, playlist_name, status)
+            VALUES (?, ?, ?, ?)
+        ''', (user_id, date_time, playlist_name, status))
+
+        # Commit the transaction and close the connection
+        conn.commit()
+        conn.close()
+
 # Streamlit App
 def main():
     st.markdown(
@@ -486,10 +522,15 @@ def handle_playlist_creation(user_id, name, description, songs, start_time):
                         ">Enjoy your New Playlist in Spotify</button>
                     </a>
                 """, unsafe_allow_html=True)
+
+                # Save playlist data
+                save_playlist_data(user_id, unique_name, "created")
             else:
                 st.error("❌ Could not create playlist on Spotify.")
+                save_playlist_data(user_id, unique_name, "fail")
     else:
         st.error("❌ Could not generate playlist.")
+        save_playlist_data(user_id, name, "fail")
 
 if __name__ == "__main__":
     main()
