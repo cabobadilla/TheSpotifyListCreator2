@@ -166,6 +166,7 @@ def build_system_content(hidden_gems, discover_new, songs_from_films):
             "Avoid songs from children's films or animated features, such as those produced by Disney, to ensure a more mature and diverse selection. "
             "These songs should be distinctly marked with the 'is_from_film' flag. "
             "The playlist name and description must highlight that it features unforgettable tracks from beloved films and series, captivating movie enthusiasts and fans of cinematic music."
+        )
     return content
 
 def build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films):
