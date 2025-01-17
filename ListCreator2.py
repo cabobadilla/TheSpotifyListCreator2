@@ -338,9 +338,19 @@ def save_playlist_data(user_id, playlist_name, status):
             conn = sqlite3.connect(connection_string, uri=True)
             cursor = conn.cursor()
 
-            # Debugging: Log the connection status
+            # Test the connection by executing a simple query
+            cursor.execute("SELECT 1")
             if feature_flags.get("debugging", False):
-                st.write("🔍 Debug: Connected to the database successfully.")
+                st.write("🔍 Debug: Database connection test successful.")
+
+            # Check if the table exists
+            cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}';")
+            table_exists = cursor.fetchone() is not None
+            if feature_flags.get("debugging", False):
+                if table_exists:
+                    st.write(f"🔍 Debug: Table '{table_name}' exists.")
+                else:
+                    st.write(f"🔍 Debug: Table '{table_name}' does not exist, it will be created.")
 
             # Create a table if it doesn't exist
             cursor.execute(f'''
