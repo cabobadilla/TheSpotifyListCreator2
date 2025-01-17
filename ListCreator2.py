@@ -323,9 +323,8 @@ def refresh_token():
 
 def save_playlist_data(user_id, playlist_name, status):
     if feature_flags.get("playlist_data_record", False):
-        # Get the connection string, database name, and table name from Streamlit secrets
+        # Get the connection string and table name from Streamlit secrets
         connection_string = st.secrets["database"]["connection_string"]
-        database_name = st.secrets["database"]["database_name"]
         table_name = st.secrets["database"]["table_name"]
 
         conn = None  # Initialize conn to None
@@ -336,7 +335,7 @@ def save_playlist_data(user_id, playlist_name, status):
                 st.write("🔍 Debug: Attempting to connect to the database.")
 
             # Connect to the SQLite Cloud database
-            conn = sqlite3.connect(connection_string)
+            conn = sqlite3.connect(connection_string, uri=True)
             cursor = conn.cursor()
 
             # Debugging: Log the connection status
