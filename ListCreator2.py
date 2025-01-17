@@ -328,6 +328,8 @@ def save_playlist_data(user_id, playlist_name, status):
         database_name = st.secrets["database"]["database_name"]
         table_name = st.secrets["database"]["table_name"]
 
+        conn = None  # Initialize conn to None
+
         try:
             # Debugging: Log the start of the database connection process
             if feature_flags.get("debugging", False):
@@ -383,10 +385,11 @@ def save_playlist_data(user_id, playlist_name, status):
                 st.write("🔍 Debug: Failed to insert data into the database.")
 
         finally:
-            # Close the connection
-            conn.close()
-            if feature_flags.get("debugging", False):
-                st.write("🔍 Debug: Database connection closed.")
+            # Close the connection if it was established
+            if conn is not None:
+                conn.close()
+                if feature_flags.get("debugging", False):
+                    st.write("🔍 Debug: Database connection closed.")
 
 # Streamlit App
 def main():
