@@ -6,6 +6,7 @@ from urllib.parse import urlencode
 import time
 import sqlite3
 from datetime import datetime
+from pymongo import MongoClient
 
 #v0.963 working session
 
@@ -323,82 +324,49 @@ def refresh_token():
 
 def save_playlist_data(user_id, playlist_name, status):
     if feature_flags.get("playlist_data_record", False):
-        # Get the connection string and table name from Streamlit secrets
-        connection_string = st.secrets["database"]["connection_string"]
-        table_name = st.secrets["database"]["table_name"]
-
-        conn = None  # Initialize conn to None
+        # Get the connection string and database name from Streamlit secrets
+        connection_string = st.secrets["mongodb"]["connection_string"]
+        database_name = st.secrets["mongodb"]["database_name"]
+        collection_name = st.secrets["mongodb"]["collection_name"]
 
         try:
             # Debugging: Log the start of the database connection process
             if feature_flags.get("debugging", False):
-                st.write("🔍 Debug: Attempting to connect to the database.")
+                st.write("🔍 Debug: Attempting to connect to MongoDB Atlas.")
 
-            # Connect to the SQLite Cloud database
-            conn = sqlite3.connect(connection_string, uri=True)
-            cursor = conn.cursor()
+            # Connect to the MongoDB Atlas database
+            client = MongoClient(connection_string)
+            db = client[database_name]
+            collection = db[collection_name]
 
-            # Test the connection by executing a simple query
-            cursor.execute("SELECT 1")
+            # Debugging: Log the connection success
             if feature_flags.get("debugging", False):
-                st.write("🔍 Debug: Database connection test successful.")
-
-            # Check if the table exists
-            cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}';")
-            table_exists = cursor.fetchone() is not None
-            if feature_flags.get("debugging", False):
-                if table_exists:
-                    st.write(f"🔍 Debug: Table '{table_name}' exists.")
-                else:
-                    st.write(f"🔍 Debug: Table '{table_name}' does not exist, it will be created.")
-
-            # Create a table if it doesn't exist
-            cursor.execute(f'''
-                CREATE TABLE IF NOT EXISTS {table_name} (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    spotify_user_id TEXT,
-                    date_time TEXT,
-                    playlist_name TEXT,
-                    status TEXT
-                )
-            ''')
-
-            # Debugging: Log the table creation status
-            if feature_flags.get("debugging", False):
-                st.write(f"🔍 Debug: Table '{table_name}' checked/created successfully.")
+                st.write("🔍 Debug: Connected to MongoDB Atlas successfully.")
 
             # Prepare data to insert
             date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            data = {
+                "spotify_user_id": user_id,
+                "date_time": date_time,
+                "playlist_name": playlist_name,
+                "status": status
+            }
 
             # Debugging: Log the data to be inserted
             if feature_flags.get("debugging", False):
-                st.write("🔍 Debug: Data to be inserted:")
-                st.write(f"User ID: {user_id}, Date Time: {date_time}, Playlist Name: {playlist_name}, Status: {status}")
+                st.write("🔍 Debug: Data to be inserted:", data)
 
             # Insert the playlist information
-            cursor.execute(f'''
-                INSERT INTO {table_name} (spotify_user_id, date_time, playlist_name, status)
-                VALUES (?, ?, ?, ?)
-            ''', (user_id, date_time, playlist_name, status))
-
-            # Commit the transaction
-            conn.commit()
+            collection.insert_one(data)
 
             # Debugging: Log the success of the data insertion
             if feature_flags.get("debugging", False):
-                st.write("🔍 Debug: Data inserted successfully.")
+                st.write("🔍 Debug: Data inserted successfully into MongoDB.")
 
-        except sqlite3.Error as e:
-            st.error(f"❌ Database error: {e}")
+        except Exception as e:
+            st.error(f"❌ MongoDB error: {e}")
             if feature_flags.get("debugging", False):
-                st.write("🔍 Debug: Failed to insert data into the database.")
-
-        finally:
-            # Close the connection if it was established
-            if conn is not None:
-                conn.close()
-                if feature_flags.get("debugging", False):
-                    st.write("🔍 Debug: Database connection closed.")
+                st.write("🔍 Debug: Failed to insert data into MongoDB.")
 
 # Streamlit App
 def main():
