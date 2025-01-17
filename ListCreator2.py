@@ -325,7 +325,7 @@ def save_playlist_data(user_id, playlist_name, status):
     if feature_flags.get("playlist_data_record", False):
         # Get the connection string, database name, and table name from Streamlit secrets
         connection_string = st.secrets["database"]["connection_string"]
-        database_name = st.secrets["database"]["name"]
+        database_name = st.secrets["database"]["database_name"]
         table_name = st.secrets["database"]["table_name"]
 
         try:
