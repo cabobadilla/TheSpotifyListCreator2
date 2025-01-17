@@ -327,33 +327,52 @@ def save_playlist_data(user_id, playlist_name, status):
         connection_string = st.secrets["database"]["connection_string"]
         database_name = st.secrets["database"]["name"]
 
-        # Connect to the SQLite Cloud database
-        conn = sqlite3.connect(connection_string)
-        cursor = conn.cursor()
+        try:
+            # Connect to the SQLite Cloud database
+            conn = sqlite3.connect(connection_string)
+            cursor = conn.cursor()
 
-        # Create a table if it doesn't exist
-        cursor.execute(f'''
-            CREATE TABLE IF NOT EXISTS {database_name} (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                spotify_user_id TEXT,
-                date_time TEXT,
-                playlist_name TEXT,
-                status TEXT
-            )
-        ''')
+            # Debugging: Log the connection status
+            if feature_flags.get("debugging", False):
+                st.write("🔍 Debug: Connected to the database successfully.")
 
-        # Prepare data to insert
-        date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # Create a table if it doesn't exist
+            cursor.execute(f'''
+                CREATE TABLE IF NOT EXISTS {database_name} (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    spotify_user_id TEXT,
+                    date_time TEXT,
+                    playlist_name TEXT,
+                    status TEXT
+                )
+            ''')
 
-        # Insert the playlist information
-        cursor.execute(f'''
-            INSERT INTO {database_name} (spotify_user_id, date_time, playlist_name, status)
-            VALUES (?, ?, ?, ?)
-        ''', (user_id, date_time, playlist_name, status))
+            # Prepare data to insert
+            date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # Commit the transaction and close the connection
-        conn.commit()
-        conn.close()
+            # Debugging: Log the data to be inserted
+            if feature_flags.get("debugging", False):
+                st.write("🔍 Debug: Data to be inserted:")
+                st.write(f"User ID: {user_id}, Date Time: {date_time}, Playlist Name: {playlist_name}, Status: {status}")
+
+            # Insert the playlist information
+            cursor.execute(f'''
+                INSERT INTO {database_name} (spotify_user_id, date_time, playlist_name, status)
+                VALUES (?, ?, ?, ?)
+            ''', (user_id, date_time, playlist_name, status))
+
+            # Commit the transaction and close the connection
+            conn.commit()
+            conn.close()
+
+            # Debugging: Log the success of the operation
+            if feature_flags.get("debugging", False):
+                st.write("🔍 Debug: Data inserted successfully.")
+
+        except sqlite3.Error as e:
+            st.error(f"❌ Database error: {e}")
+            if feature_flags.get("debugging", False):
+                st.write("🔍 Debug: Failed to insert data into the database.")
 
 # Streamlit App
 def main():
