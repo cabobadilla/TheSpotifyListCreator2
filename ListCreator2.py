@@ -170,14 +170,18 @@ def build_system_content(hidden_gems, discover_new, songs_from_films):
     return content
 
 def build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films):
-    return (
+    user_content = (
         f"Create a playlist for the mood '{mood}' and genres {', '.join(genres)}. "
         f"Make sure the songs align with the mood and genres. "
-        f"{'Include 40% hidden gems and lesser-known songs that are not mainstream.' if hidden_gems else ''} "
-        f"{'Include 40% songs from 2021 onwards with accurate release years.' if discover_new else ''} "
-        f"{'Include 40% songs from popular films, avoiding child or kids-style movies like Disney.' if songs_from_films else ''} "
-        f"Ensure each song has an accurate release year as an integer."
     )
+    if hidden_gems:
+        user_content += "Include 60% hidden gems and lesser-known songs that are not mainstream. "
+    if discover_new:
+        user_content += "Include 60% songs from 2021 onwards with accurate release years. "
+    if songs_from_films:
+        user_content += "Include 40% songs from popular films, avoiding child or kids-style movies like Disney. "
+    user_content += "Ensure each song has an accurate release year as an integer."
+    return user_content
 
 # Function to validate and clean JSON
 def validate_and_clean_json(raw_response):
