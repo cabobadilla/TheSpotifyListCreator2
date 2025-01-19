@@ -62,7 +62,7 @@ SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 SPOTIFY_API_URL = "https://api.spotify.com/v1"
 
 # Load configuration from Streamlit secrets
-@st.cache
+@st.cache_data
 def load_config():
     """Load configuration from Streamlit secrets."""
     try:
@@ -74,7 +74,7 @@ def load_config():
 config = load_config()
 
 # Load feature flags from Streamlit secrets
-@st.cache
+@st.cache_data
 def load_feature_flags():
     """Load feature flags from Streamlit secrets."""
     try:
