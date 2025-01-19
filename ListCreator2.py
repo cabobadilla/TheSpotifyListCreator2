@@ -64,9 +64,7 @@ SPOTIFY_API_URL = "https://api.spotify.com/v1"
 # Load configuration from Streamlit secrets
 @st.cache
 def load_config():
-    """
-    Load configuration from Streamlit secrets.
-    """
+    """Load configuration from Streamlit secrets."""
     try:
         return st.secrets["config"]
     except KeyError:
@@ -76,10 +74,9 @@ def load_config():
 config = load_config()
 
 # Load feature flags from Streamlit secrets
+@st.cache
 def load_feature_flags():
-    """
-    Load feature flags from Streamlit secrets.
-    """
+    """Load feature flags from Streamlit secrets."""
     try:
         feature_flags = st.secrets["feature_flags"]
         if feature_flags.get("debugging", False):
