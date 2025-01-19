@@ -6,7 +6,6 @@ from urllib.parse import urlencode
 import time
 from datetime import datetime
 from pymongo import MongoClient
-import pandas as pd
 
 #v0.963 working session
 #Just test
@@ -55,19 +54,14 @@ REDIRECT_URI = st.secrets.get("SPOTIFY_REDIRECT_URI", "http://localhost:8501/cal
 # Scopes for Spotify API
 SCOPES = "playlist-modify-private playlist-modify-public"
 
-# Constants
-SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
-SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
-SPOTIFY_API_URL = "https://api.spotify.com/v1"
-
 # Load configuration from Streamlit secrets
-@st.cache
 def load_config():
     """
     Load configuration from Streamlit secrets.
     """
     try:
-        return st.secrets["config"]
+        config = st.secrets["config"]
+        return config
     except KeyError:
         st.error("❌ Configuration not found in Streamlit secrets.")
         return {"moods": [], "genres": []}
@@ -92,13 +86,14 @@ feature_flags = load_feature_flags()
 
 # Function to get authorization URL
 def get_auth_url(client_id, redirect_uri, scopes):
+    auth_url = "https://accounts.spotify.com/authorize"
     params = {
         "client_id": client_id,
         "response_type": "code",
         "redirect_uri": redirect_uri,
         "scope": scopes,
     }
-    return f"{SPOTIFY_AUTH_URL}?{urlencode(params)}"
+    return f"{auth_url}?{urlencode(params)}"
 
 # Function to generate songs, playlist name, and description using ChatGPT
 def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=False, songs_from_films=False):
