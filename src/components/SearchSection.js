@@ -3,7 +3,7 @@ import { generateMusicPrompt } from '../utils/promptTemplates';
 import { fetchSongRecommendations } from '../services/songRecommendations';
 
 function SearchSection({ onSearch }) {
-  const [searchType, setSearchType] = useState('top');
+  const [searchType, setSearchType] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedGenre, setSelectedGenre] = useState('');
   const [selectedMood, setSelectedMood] = useState('');
@@ -11,19 +11,9 @@ function SearchSection({ onSearch }) {
   const handleSearch = async () => {
     setIsLoading(true);
     try {
-      const prompt = generateMusicPrompt(
-        selectedGenre, 
-        selectedMood,
-        searchType === 'top'
-      );
-      
+      const prompt = generateMusicPrompt(selectedGenre, selectedMood);
       const response = await fetchSongRecommendations(prompt);
-      const songs = response.map(song => ({
-        ...song,
-        is_top_song: song.is_top_song || false // Ensure the field exists
-      }));
-      
-      onSearch(songs);
+      onSearch(response);
     } catch (error) {
       console.error('Error fetching songs:', error);
       // Handle error appropriately

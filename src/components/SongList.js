@@ -6,7 +6,6 @@ function SongList({ songs }) {
           <div className="song-info">
             <h3>{song.title}</h3>
             <p>{song.artist} ({song.year})</p>
-            {song.is_top_song && <span className="top-song-badge">Popular</span>}
           </div>
           {/* ... existing code ... */}
         </div>
