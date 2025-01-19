@@ -6,6 +6,7 @@ from urllib.parse import urlencode
 import time
 from datetime import datetime
 from pymongo import MongoClient
+import pandas as pd
 
 #v0.963 working session
 #Just test
@@ -54,25 +55,25 @@ REDIRECT_URI = st.secrets.get("SPOTIFY_REDIRECT_URI", "http://localhost:8501/cal
 # Scopes for Spotify API
 SCOPES = "playlist-modify-private playlist-modify-public"
 
+# Constants
+SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
+SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
+SPOTIFY_API_URL = "https://api.spotify.com/v1"
+
 # Load configuration from Streamlit secrets
+@st.cache_data
 def load_config():
-    """
-    Load configuration from Streamlit secrets.
-    """
+    """Load configuration from Streamlit secrets."""
     try:
-        config = st.secrets["config"]
-        return config
+        return st.secrets["config"]
     except KeyError:
         st.error("❌ Configuration not found in Streamlit secrets.")
         return {"moods": [], "genres": []}
 
-config = load_config()
-
 # Load feature flags from Streamlit secrets
+@st.cache_data
 def load_feature_flags():
-    """
-    Load feature flags from Streamlit secrets.
-    """
+    """Load feature flags from Streamlit secrets."""
     try:
         feature_flags = st.secrets["feature_flags"]
         if feature_flags.get("debugging", False):
@@ -82,10 +83,46 @@ def load_feature_flags():
         st.error("❌ Feature flags not found in Streamlit secrets.")
         return {"hidden_gems": False, "new_music": False, "debugging": False}
 
-feature_flags = load_feature_flags()
+# Generate the authorization URL for Spotify
+def get_auth_url(client_id, redirect_uri, scopes):
+    params = {
+        "client_id": client_id,
+        "response_type": "code",
+        "redirect_uri": redirect_uri,
+        "scope": scopes,
+    }
+    return f"{SPOTIFY_AUTH_URL}?{urlencode(params)}"
+
+# Generate a music prompt for ChatGPT
+def generate_music_prompt(genre, mood, is_top_songs=False):
+    """Generate a music prompt for ChatGPT."""
+    top_songs_clause = "Focus on well-known, popular, and top-charting songs (at least 80% of suggestions should be hits or popular tracks). " if is_top_songs else ""
+    return (f"Suggest 10 {genre} songs that evoke a {mood} mood. {top_songs_clause}"
+            "For each song provide the following JSON structure: "
+            '{"title": "song name", "artist": "artist name", "year": "release year", "is_top_song": boolean}. '
+            "Return only a JSON array with these objects.")
+
+# Fetch song recommendations from ChatGPT
+def get_song_recommendations(genre, mood, search_type):
+    """Fetch song recommendations from ChatGPT."""
+    try:
+        is_top_songs = search_type == "Top Songs"
+        prompt = generate_music_prompt(genre, mood, is_top_songs)
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7
+        )
+        songs_data = json.loads(response.choices[0].message.content)
+        for song in songs_data:
+            song.setdefault('is_top_song', is_top_songs)  # Set the flag based on the search type
+        return songs_data
+    except Exception as e:
+        st.error(f"Error getting recommendations: {str(e)}")
+        return []
 
 # Function to get authorization URL
-def get_auth_url(client_id, redirect_uri, scopes):
+def get_auth_url_old(client_id, redirect_uri, scopes):
     auth_url = "https://accounts.spotify.com/authorize"
     params = {
         "client_id": client_id,
