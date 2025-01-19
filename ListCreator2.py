@@ -4,7 +4,6 @@ import streamlit as st
 import requests
 from urllib.parse import urlencode
 import time
-import sqlite3
 from datetime import datetime
 from pymongo import MongoClient
 import pandas as pd
