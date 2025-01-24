@@ -149,12 +149,12 @@ def build_system_content(hidden_gems, discover_new, songs_from_films):
         content += (
             "Activate hidden gems mode to create a unique playlist name that reflects the essence of underground music. "
             "The description should emphasize this as a curated collection of lesser-known tracks. "
-            "Ensure that at least 80% of the songs are hidden gems, avoiding mainstream hits. Mark these songs with the 'is_hidden_gem' flag. "
+            "Ensure that at least 60% of the songs are hidden gems, avoiding mainstream hits. Mark these songs with the 'is_hidden_gem' flag. "
             "The name and description should evoke a sense of discovery and exclusivity, showcasing the uniqueness of these selections. "
         )
     if discover_new:
         content += (
-            "With discover new music mode activated, ensure that at least 80% of the songs are from 2021 onward, "
+            "With discover new music mode activated, ensure that at least 60% of the songs are from 2021 onward, "
             "focusing on fresh releases while avoiding remastered tracks. Mark these songs with the 'is_new_music' flag. "
             "The name and description should highlight that this playlist features exciting recent releases, encouraging listeners to explore new sounds. "
         )
@@ -174,9 +174,9 @@ def build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films
         f"Make sure the songs align with the mood and genres. "
     )
     if hidden_gems:
-        user_content += "Include 80% hidden gems and lesser-known songs that are not mainstream. "
+        user_content += "Include 60% hidden gems and lesser-known songs that are not mainstream. "
     if discover_new:
-        user_content += "Include 68% songs from 2021 onwards with accurate release years. "
+        user_content += "Include 68% of songs from 2021 onwards with accurate release years. "
     if songs_from_films:
         user_content += "Include 40% songs from popular films, avoiding child or kids-style movies like Disney. "
     user_content += "Ensure each song has an accurate release year as an integer."
