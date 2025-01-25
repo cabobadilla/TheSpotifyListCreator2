@@ -136,11 +136,14 @@ def build_system_content(hidden_gems, discover_new, songs_from_films, undergroun
         '{"title": "Song Name", "artist": "Artist Name", "year": 2024, "is_hidden_gem": false, "is_new_music": false, "is_from_film": false}'
         ']}'
     )
-    if hidden_gems or discover_new or songs_from_films:
-        content += (
-            "Ensure the playlist contains exactly 15 songs, even if the filters limit the selection. "
-            "If fewer than 15 songs are selected, fill the remaining slots with popular tracks from the same genres. "
-        )
+
+    # Ensure 15 songs requirement for all modes
+    content += (
+        "Ensure the playlist contains exactly 15 songs, even if the filters limit the selection. "
+        "If fewer than 15 songs are selected, fill the remaining slots with appropriate tracks from the same genres. "
+    )
+
+    # Add feature-specific content while maintaining existing prompts
     if hidden_gems:
         content += (
             "For hidden gems mode: "
@@ -154,6 +157,7 @@ def build_system_content(hidden_gems, discover_new, songs_from_films, undergroun
             "The playlist name should contain words like 'Hidden', 'Undiscovered', or 'Rare'. "
             "The description must emphasize the curated nature and uniqueness of these lesser-known musical treasures. "
         )
+
     if discover_new:
         content += (
             "For the new music discovery mode: "
@@ -166,6 +170,7 @@ def build_system_content(hidden_gems, discover_new, songs_from_films, undergroun
             "The playlist name should contain words like 'Fresh', 'New', or 'Rising'. "
             "The description must emphasize discovering the latest music and emerging talent. "
         )
+
     if songs_from_films:
         content += (
             "Incorporate songs that play a significant role in popular films or TV series, ensuring they enhance the storyline or are associated with memorable scenes. "
@@ -174,6 +179,7 @@ def build_system_content(hidden_gems, discover_new, songs_from_films, undergroun
             "These songs should be distinctly marked with the 'is_from_film' flag. "
             "The playlist name and description must highlight that it features unforgettable tracks from beloved films and series, captivating movie enthusiasts and fans of cinematic music."
         )
+
     if underground_music:
         content += (
             "Focus on creating a playlist with underground and non-mainstream music that truly represents the selected genres. "
@@ -184,6 +190,7 @@ def build_system_content(hidden_gems, discover_new, songs_from_films, undergroun
             "The playlist name and description should reflect the authentic and underground nature of the selection. "
             "Each song should be a genuine representation of the genre, avoiding any commercial or pop-influenced versions. "
         )
+
     if band_name:
         content += (
             f"Create a 15-song playlist focused on music from and inspired by '{band_name}'. "
@@ -205,22 +212,39 @@ def build_system_content(hidden_gems, discover_new, songs_from_films, undergroun
             "The description should tell a musical story connecting all songs and artists. "
             "Mark songs by the main band with 'is_band_music': true. "
             )
+
     return content
 
 def build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films, underground_music=False, band_name=None):
     """
-    Creates the user prompt for ChatGPT combining all features
+    Creates the user prompt for ChatGPT combining:
+    - Selected mood and genres (if not band mode)
+    - Band focus (if band mode)
+    - Feature-specific requirements
     """
-    user_content = (
-        f"Create a playlist for the mood '{mood}' and genres {', '.join(genres)}. "
-        f"Make sure the songs align with the mood and genres. "
-    )
+    # Set base content based on mode
+    if band_name:
+        user_content = (
+            f"Create a playlist featuring music from {band_name} and similar artists. "
+            f"Include both hits and deep cuts from {band_name}, "
+            "along with songs from artists with similar style or influence. "
+        )
+    else:
+        user_content = (
+            f"Create a playlist for the mood '{mood}' and genres {', '.join(genres)}. "
+            f"Make sure the songs align with the mood and genres. "
+        )
+
+    # Add feature requirements while maintaining existing prompts
     if hidden_gems:
         user_content += "Include 60% hidden gems and lesser-known songs that are not mainstream. "
+
     if discover_new:
         user_content += "Include 68% of songs from 2021 onwards with accurate release years. "
+
     if songs_from_films:
         user_content += "Include 40% songs from popular films, avoiding child or kids-style movies like Disney. "
+
     if underground_music:
         user_content += (
             "Focus exclusively on underground and non-mainstream music. "
@@ -228,13 +252,10 @@ def build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films
             "Avoid any commercially successful or widely popular tracks. "
             "Include artists from independent labels and local scenes. "
         )
-    if band_name:
-        user_content += (
-            f"Create a playlist featuring music from {band_name} and similar artists. "
-            f"Include both hits and deep cuts from {band_name}, "
-            "along with songs from artists with similar style or influence. "
-        )
+
+    # Always include year requirement
     user_content += "Ensure each song has an accurate release year as an integer."
+
     return user_content
 
 def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=False, songs_from_films=False, underground_music=False, band_name=None):
