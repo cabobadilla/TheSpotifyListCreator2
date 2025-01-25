@@ -7,10 +7,21 @@ import time
 from datetime import datetime
 from pymongo import MongoClient
 
+# ====================================
+# VERSION AND ENVIRONMENT
+# ====================================
 #v0.963 working session
 #Just test
 
-# Estilo de Spotify (colores verde y negro)
+# ====================================
+# UI STYLING
+# ====================================
+# Custom Spotify-themed styling (green and black colors)
+# Controls the appearance of:
+# - Background and text colors
+# - Headers
+# - Buttons
+# - Input fields
 st.markdown(
     '''
     <style>
@@ -45,19 +56,26 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Spotify API Credentials
+# ====================================
+# API CONFIGURATION
+# ====================================
+# Load API credentials from Streamlit secrets
 CLIENT_ID = st.secrets["SPOTIFY_CLIENT_ID"]
 CLIENT_SECRET = st.secrets["SPOTIFY_CLIENT_SECRET"]
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+# Fallback to localhost if no redirect URI specified
 REDIRECT_URI = st.secrets.get("SPOTIFY_REDIRECT_URI", "http://localhost:8501/callback")
 
-# Scopes for Spotify API
+# Required Spotify permissions for playlist creation and modification
 SCOPES = "playlist-modify-private playlist-modify-public"
 
-# Load configuration from Streamlit secrets
+# ====================================
+# CONFIGURATION MANAGEMENT
+# ====================================
 def load_config():
     """
-    Load configuration from Streamlit secrets.
+    Loads mood and genre options from Streamlit secrets.
+    Returns: Dictionary containing available moods and genres
     """
     try:
         config = st.secrets["config"]
@@ -68,10 +86,10 @@ def load_config():
 
 config = load_config()
 
-# Load feature flags from Streamlit secrets
 def load_feature_flags():
     """
-    Load feature flags from Streamlit secrets.
+    Loads feature toggles from Streamlit secrets.
+    Controls: hidden gems, new music discovery, debugging mode
     """
     try:
         feature_flags = st.secrets["feature_flags"]
@@ -84,50 +102,19 @@ def load_feature_flags():
 
 feature_flags = load_feature_flags()
 
-# Function to get authorization URL
-def get_auth_url(client_id, redirect_uri, scopes):
-    auth_url = "https://accounts.spotify.com/authorize"
-    params = {
-        "client_id": client_id,
-        "response_type": "code",
-        "redirect_uri": redirect_uri,
-        "scope": scopes,
-    }
-    return f"{auth_url}?{urlencode(params)}"
-
-# Function to generate songs, playlist name, and description using ChatGPT
-def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=False, songs_from_films=False):
-    client = openai.OpenAI(api_key=OPENAI_API_KEY)
-    system_content = build_system_content(hidden_gems, discover_new, songs_from_films)
-    user_content = build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films)
-    
-    messages = [
-        {"role": "system", "content": system_content},
-        {"role": "user", "content": user_content},
-    ]
-    
-    try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-            max_tokens=1500,
-            temperature=0.8 if hidden_gems or discover_new else 0.7,
-        )
-        playlist_response = response.choices[0].message.content.strip()
-        
-        # Show debug messages if debugging is enabled
-        if feature_flags.get("debugging", False):
-            st.write("📝 Response received from ChatGPT")
-            st.write("🔍 Response length:", len(playlist_response))
-            st.write("🔍 Playlist response content:")
-            st.code(playlist_response)  # Display the raw JSON response
-        
-        return validate_and_clean_json(playlist_response)
-    except Exception as e:
-        st.error(f"❌ ChatGPT API Error: {str(e)}")
-        return None, None, []
-
+# ====================================
+# PLAYLIST GENERATION
+# ====================================
 def build_system_content(hidden_gems, discover_new, songs_from_films):
+    """
+    Builds the system prompt for ChatGPT with specific rules:
+    - Playlist name max 4 words
+    - Description max 20 words
+    - Exactly 15 songs
+    - Special handling for hidden gems (60%)
+    - New music from 2021+ (60%)
+    - Movie soundtracks (40%)
+    """
     content = (
         "You are a music expert and DJ who curates playlists based on mood and genres. "
         "Your role is to create a playlist that effectively captures the desired mood using the selected music genres. "
@@ -169,6 +156,12 @@ def build_system_content(hidden_gems, discover_new, songs_from_films):
     return content
 
 def build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films):
+    """
+    Creates the user prompt for ChatGPT combining:
+    - Selected mood and genres
+    - Feature-specific requirements (hidden gems, new music, films)
+    - Song year requirements
+    """
     user_content = (
         f"Create a playlist for the mood '{mood}' and genres {', '.join(genres)}. "
         f"Make sure the songs align with the mood and genres. "
@@ -182,8 +175,17 @@ def build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films
     user_content += "Ensure each song has an accurate release year as an integer."
     return user_content
 
-# Function to validate and clean JSON
+# ====================================
+# JSON PROCESSING
+# ====================================
 def validate_and_clean_json(raw_response):
+    """
+    Processes ChatGPT's response:
+    1. Validates JSON format
+    2. Cleans special characters
+    3. Ensures required fields exist
+    4. Handles error cases
+    """
     if not raw_response:
         raise ValueError("ChatGPT response is empty.")
     
@@ -201,6 +203,12 @@ def validate_and_clean_json(raw_response):
     return playlist_data["name"], playlist_data["description"], playlist_data["songs"]
 
 def attempt_json_cleanup(raw_response):
+    """
+    Attempts to fix common JSON formatting issues:
+    - Removes code block markers
+    - Fixes quote characters
+    - Removes extra whitespace
+    """
     if feature_flags.get("debugging", False):
         st.write("⚠️ Initial JSON parsing failed, attempting cleanup...")
     cleaned_response = clean_response(raw_response)
@@ -239,8 +247,17 @@ def validate_playlist_data(playlist_data):
         song.setdefault('is_hidden_gem', False)
         song.setdefault('is_new_music', False)
 
-# Function to search for songs on Spotify
+# ====================================
+# SPOTIFY INTEGRATION
+# ====================================
 def search_tracks(token, title, artist, year):
+    """
+    Searches Spotify for tracks using:
+    - Song title
+    - Artist name
+    - Release year
+    Returns top 5 matching results
+    """
     # Construct a more precise query with title, artist, and year
     query = f"track:{title} artist:{artist} year:{year}"
     url = "https://api.spotify.com/v1/search"
@@ -269,60 +286,18 @@ def handle_spotify_error(response):
     error_message = response.json().get('error', {}).get('message', 'Unknown error')
     st.error(f"❌ Error searching for songs: {error_message}")
 
-# Function to create a playlist on Spotify
-def create_playlist(token, user_id, name, description):
-    url = f"https://api.spotify.com/v1/users/{user_id}/playlists"
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    payload = {"name": name, "description": description, "public": False}
-    response = requests.post(url, headers=headers, json=payload)
-    return response.json()
-
-# Function to add songs to a playlist on Spotify
-def add_tracks_to_playlist(token, playlist_id, track_uris):
-    url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    payload = {"uris": track_uris}
-    response = requests.post(url, headers=headers, json=payload)
-    return response
-
-def generate_unique_playlist_name(desired_name):
-    # Generate a 4-digit timestamp
-    timestamp = int(time.time()) % 10000  # Get the last 4 digits of the current timestamp
-    unique_name = f"{desired_name} - {timestamp:04d}"
-    
-    if feature_flags.get("debugging", False):
-        st.write(f"🔍 Debug: Generated unique playlist name: '{unique_name}'")
-    
-    return unique_name
-
-def is_token_valid(token):
-    # Check if the token is valid by making a simple request
-    url = "https://api.spotify.com/v1/me"
-    headers = {"Authorization": f"Bearer {token}"}
-    response = requests.get(url, headers=headers)
-    return response.status_code == 200
-
-def refresh_token():
-    # Refresh the token using the refresh token
-    refresh_token = st.secrets["SPOTIFY_REFRESH_TOKEN"]
-    response = requests.post(
-        "https://accounts.spotify.com/api/token",
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        data={
-            "grant_type": "refresh_token",
-            "refresh_token": refresh_token,
-            "client_id": CLIENT_ID,
-            "client_secret": CLIENT_SECRET,
-        },
-    ).json()
-    if "access_token" in response:
-        st.session_state.access_token = response["access_token"]
-        return True
-    else:
-        st.error("❌ Could not refresh token.")
-        return False
-
+# ====================================
+# DATA PERSISTENCE
+# ====================================
 def save_playlist_data(user_id, playlist_name, status, playlist_uri, num_songs, feature_selected):
+    """
+    Records playlist creation data in MongoDB:
+    - User ID
+    - Playlist details
+    - Creation status
+    - Feature usage
+    - Timestamp
+    """
     if feature_flags.get("playlist_data_record", False):
         # Get the connection string and database name from Streamlit secrets
         connection_string = st.secrets["mongodb"]["connection_string"]
@@ -371,8 +346,18 @@ def save_playlist_data(user_id, playlist_name, status, playlist_uri, num_songs, 
             if feature_flags.get("debugging", False):
                 st.write("🔍 Debug: Failed to insert data into MongoDB.")
 
-# Streamlit App
+# ====================================
+# USER INTERFACE
+# ====================================
 def main():
+    """
+    Main application flow:
+    1. Display header and description
+    2. Handle authentication
+    3. Show playlist creation form
+    4. Process user input
+    5. Generate and create playlist
+    """
     st.markdown(
         """
         <h1 style='text-align: center;'>🎵 GenAI Playlist Creator 🎵</h1>
@@ -392,7 +377,13 @@ def main():
     if "access_token" in st.session_state:
         display_playlist_creation_form()
 
+# ====================================
+# AUTHENTICATION HANDLING
+# ====================================
 def display_authentication_link():
+    """
+    Shows Spotify login link and processes callback
+    """
     auth_url = get_auth_url(CLIENT_ID, REDIRECT_URI, SCOPES)
     st.markdown(
         f"<div style='text-align: center;'><a href='{auth_url}' target='_blank' style='color: #1DB954; font-weight: bold;'>🔑 Login with Spotify</a></div>",
@@ -403,6 +394,10 @@ def display_authentication_link():
         handle_spotify_authentication(query_params["code"])
 
 def handle_spotify_authentication(code):
+    """
+    Exchanges auth code for access token
+    Stores token in session state
+    """
     token_response = requests.post(
         "https://accounts.spotify.com/api/token",
         headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -420,7 +415,18 @@ def handle_spotify_authentication(code):
     else:
         st.error("❌ Authentication error.")
 
+# ====================================
+# PLAYLIST CREATION WORKFLOW
+# ====================================
 def display_playlist_creation_form():
+    """
+    Shows the main interface:
+    - User ID input
+    - Mood selection
+    - Genre selection
+    - Feature toggles
+    - Creation button
+    """
     st.markdown("<h2>🎶 Generate and Create Playlist</h2>", unsafe_allow_html=True)
     user_id = st.text_input("Enter your Spotify user ID", placeholder="Spotify Username", label_visibility="collapsed")
     mood = st.selectbox("😊 Select your desired mood", config["moods"], label_visibility="collapsed")
@@ -473,6 +479,15 @@ def display_playlist_creation_form():
             st.warning("⚠️ Please complete all fields to create the playlist.")
 
 def handle_playlist_creation(user_id, name, description, songs, start_time, feature_selection):
+    """
+    Orchestrates the playlist creation process:
+    1. Validates inputs
+    2. Searches for tracks
+    3. Creates playlist
+    4. Adds tracks
+    5. Shows results
+    6. Records creation data
+    """
     if name and description and songs:
         st.success(f"✅ Generated name: {name}")
         st.info(f"📜 Generated description: {description}")
@@ -548,5 +563,43 @@ def handle_playlist_creation(user_id, name, description, songs, start_time, feat
         st.error("❌ Could not generate playlist.")
         save_playlist_data(user_id, name, "fail", "", 0, "")
 
+def generate_unique_playlist_name(desired_name):
+    # Generate a 4-digit timestamp
+    timestamp = int(time.time()) % 10000  # Get the last 4 digits of the current timestamp
+    unique_name = f"{desired_name} - {timestamp:04d}"
+    
+    if feature_flags.get("debugging", False):
+        st.write(f"🔍 Debug: Generated unique playlist name: '{unique_name}'")
+    
+    return unique_name
+
+def is_token_valid(token):
+    # Check if the token is valid by making a simple request
+    url = "https://api.spotify.com/v1/me"
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(url, headers=headers)
+    return response.status_code == 200
+
+def refresh_token():
+    # Refresh the token using the refresh token
+    refresh_token = st.secrets["SPOTIFY_REFRESH_TOKEN"]
+    response = requests.post(
+        "https://accounts.spotify.com/api/token",
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        data={
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET,
+        },
+    ).json()
+    if "access_token" in response:
+        st.session_state.access_token = response["access_token"]
+        return True
+    else:
+        st.error("❌ Could not refresh token.")
+        return False
+
+# Application entry point
 if __name__ == "__main__":
     main()
