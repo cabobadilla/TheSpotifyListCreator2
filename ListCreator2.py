@@ -13,6 +13,7 @@ from pymongo import MongoClient
 #v0.963 working session
 #Just test
 # 764ee2ace2397c98a8f4d5093cfbd07b3c471eb8 working
+# testing automatic commit
 
 # ====================================
 # UI STYLING
