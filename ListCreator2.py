@@ -12,6 +12,7 @@ from pymongo import MongoClient
 # ====================================
 #v0.963 working session
 #Just test
+# 764ee2ace2397c98a8f4d5093cfbd07b3c471eb8 working
 
 # ====================================
 # UI STYLING
@@ -63,8 +64,12 @@ st.markdown(
 CLIENT_ID = st.secrets["SPOTIFY_CLIENT_ID"]
 CLIENT_SECRET = st.secrets["SPOTIFY_CLIENT_SECRET"]
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-# Fallback to localhost if no redirect URI specified
 REDIRECT_URI = st.secrets.get("SPOTIFY_REDIRECT_URI", "http://localhost:8501/callback")
+
+# Spotify API endpoints
+SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
+SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
+SPOTIFY_API_URL = "https://api.spotify.com/v1"
 
 # Required Spotify permissions for playlist creation and modification
 SCOPES = "playlist-modify-private playlist-modify-public"
@@ -89,31 +94,35 @@ config = load_config()
 def load_feature_flags():
     """
     Loads feature toggles from Streamlit secrets.
-    Controls: hidden gems, new music discovery, debugging mode
+    Controls: hidden gems, new music, debugging mode, underground music, band music
     """
     try:
         feature_flags = st.secrets["feature_flags"]
         if feature_flags.get("debugging", False):
-            st.write("🔍 Debug: Feature flags loaded:", feature_flags)  # Debugging statement
+            st.write("🔍 Debug: Feature flags loaded:", feature_flags)
         return feature_flags
     except KeyError:
         st.error("❌ Feature flags not found in Streamlit secrets.")
-        return {"hidden_gems": False, "new_music": False, "debugging": False}
+        return {
+            "hidden_gems": False, 
+            "new_music": False, 
+            "debugging": False,
+            "underground_music": False,
+            "band_music": False  # New feature flag
+        }
 
 feature_flags = load_feature_flags()
 
 # ====================================
 # PLAYLIST GENERATION
 # ====================================
-def build_system_content(hidden_gems, discover_new, songs_from_films):
+def build_system_content(hidden_gems, discover_new, songs_from_films, underground_music=False, band_name=None):
     """
     Builds the system prompt for ChatGPT with specific rules:
     - Playlist name max 4 words
     - Description max 20 words
     - Exactly 15 songs
-    - Special handling for hidden gems (60%)
-    - New music from 2021+ (60%)
-    - Movie soundtracks (40%)
+    - Special handling for hidden gems, new music, films, and underground music
     """
     content = (
         "You are a music expert and DJ who curates playlists based on mood and genres. "
@@ -134,16 +143,28 @@ def build_system_content(hidden_gems, discover_new, songs_from_films):
         )
     if hidden_gems:
         content += (
-            "Activate hidden gems mode to create a unique playlist name that reflects the essence of underground music. "
-            "The description should emphasize this as a curated collection of lesser-known tracks. "
-            "Ensure that at least 60% of the songs are hidden gems, avoiding mainstream hits. Mark these songs with the 'is_hidden_gem' flag. "
-            "The name and description should evoke a sense of discovery and exclusivity, showcasing the uniqueness of these selections. "
+            "For hidden gems mode: "
+            "- At least 60% of songs must be hidden gems with less than 1 million streams "
+            "- Select songs from independent record labels and underground artists "
+            "- Avoid any songs that have charted on Billboard Hot 100 or similar mainstream charts "
+            "- Focus on B-sides, deep cuts, and songs that never became singles "
+            "- Include songs from local music scenes and regional hits "
+            "- Look for critically acclaimed but commercially overlooked tracks "
+            "- Mark qualifying songs with 'is_hidden_gem': true "
+            "The playlist name should contain words like 'Hidden', 'Undiscovered', or 'Rare'. "
+            "The description must emphasize the curated nature and uniqueness of these lesser-known musical treasures. "
         )
     if discover_new:
         content += (
-            "With discover new music mode activated, ensure that at least 60% of the songs are from 2021 onward, "
-            "focusing on fresh releases while avoiding remastered tracks. Mark these songs with the 'is_new_music' flag. "
-            "The name and description should highlight that this playlist features exciting recent releases, encouraging listeners to explore new sounds. "
+            "For the new music discovery mode: "
+            "- At least 60% of songs MUST be released between 2021-2024 "
+            "- Only include original releases, NO remasters/remixes/covers "
+            "- Mark qualifying songs with 'is_new_music': true "
+            "- Focus on emerging artists and breakthrough tracks "
+            "- Include songs from different sub-genres within the selected genres "
+            "- Avoid songs that already have over 50 million streams "
+            "The playlist name should contain words like 'Fresh', 'New', or 'Rising'. "
+            "The description must emphasize discovering the latest music and emerging talent. "
         )
     if songs_from_films:
         content += (
@@ -153,14 +174,42 @@ def build_system_content(hidden_gems, discover_new, songs_from_films):
             "These songs should be distinctly marked with the 'is_from_film' flag. "
             "The playlist name and description must highlight that it features unforgettable tracks from beloved films and series, captivating movie enthusiasts and fans of cinematic music."
         )
+    if underground_music:
+        content += (
+            "Focus on creating a playlist with underground and non-mainstream music that truly represents the selected genres. "
+            "Avoid any songs that have appeared in popular charts or have more than 1 million plays. "
+            "At least 60% of songs MUST be from artists from independent labels and local music scenes. "
+            "The songs should be authentic to the genre's roots and underground culture. "
+            "Include tracks from emerging artists and those who maintain artistic integrity over commercial success. "
+            "The playlist name and description should reflect the authentic and underground nature of the selection. "
+            "Each song should be a genuine representation of the genre, avoiding any commercial or pop-influenced versions. "
+        )
+    if band_name:
+        content += (
+            f"Create a 15-song playlist focused on music from and inspired by '{band_name}'. "
+            f"- Include 5-6 songs directly from {band_name}: "
+            f"  • 2-3 of their most iconic hits "
+            f"  • 2-3 deep cuts or fan favorites from different albums/eras "
+            f"- For the remaining 9-10 songs, create an eclectic mix: "
+            f"  • 2-3 songs from artists that influenced {band_name}'s sound "
+            f"  • 2-3 songs from contemporary artists they inspired "
+            f"  • 1-2 creative cover versions of {band_name} songs by other artists "
+            f"  • 1-2 songs that {band_name} has covered, showing their influences "
+            f"  • 1-2 songs from side projects or solo work by band members "
+            f"  • 1-2 songs featuring collaborations with other artists "
+            f"- If needed, expand selection creatively by including: "
+            f"  • Live versions or acoustic renditions of {band_name} songs "
+            f"  • Tribute songs written about {band_name} "
+            f"  • Songs that sample or reference {band_name}'s music "
+            "The playlist name should creatively reference the band's legacy or signature style. "
+            "The description should tell a musical story connecting all songs and artists. "
+            "Mark songs by the main band with 'is_band_music': true. "
+            )
     return content
 
-def build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films):
+def build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films, underground_music=False, band_name=None):
     """
-    Creates the user prompt for ChatGPT combining:
-    - Selected mood and genres
-    - Feature-specific requirements (hidden gems, new music, films)
-    - Song year requirements
+    Creates the user prompt for ChatGPT combining all features
     """
     user_content = (
         f"Create a playlist for the mood '{mood}' and genres {', '.join(genres)}. "
@@ -172,8 +221,61 @@ def build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films
         user_content += "Include 68% of songs from 2021 onwards with accurate release years. "
     if songs_from_films:
         user_content += "Include 40% songs from popular films, avoiding child or kids-style movies like Disney. "
+    if underground_music:
+        user_content += (
+            "Focus exclusively on underground and non-mainstream music. "
+            "Select songs that are authentic to the genre's culture and roots. "
+            "Avoid any commercially successful or widely popular tracks. "
+            "Include artists from independent labels and local scenes. "
+        )
+    if band_name:
+        user_content += (
+            f"Create a playlist featuring music from {band_name} and similar artists. "
+            f"Include both hits and deep cuts from {band_name}, "
+            "along with songs from artists with similar style or influence. "
+        )
     user_content += "Ensure each song has an accurate release year as an integer."
     return user_content
+
+def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=False, songs_from_films=False, underground_music=False, band_name=None):
+    """
+    Generates playlist details using ChatGPT based on user preferences.
+    Returns: Tuple of (playlist_name, description, songs_list)
+    """
+    client = openai.OpenAI(api_key=OPENAI_API_KEY)
+    
+    # Build the system and user content for the prompt
+    system_content = build_system_content(hidden_gems, discover_new, songs_from_films, underground_music, band_name)
+    user_content = build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films, underground_music, band_name)
+    
+    try:
+        # Make the API call to ChatGPT
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_content},
+                {"role": "user", "content": user_content}
+            ],
+            temperature=0.7
+        )
+        
+        # Get the response content
+        raw_response = response.choices[0].message.content
+        
+        # Process and validate the response
+        if feature_flags.get("debugging", False):
+            st.write("🔍 Debug: Raw GPT Response:", raw_response)
+        
+        # Clean and validate the JSON response
+        name, description, songs = validate_and_clean_json(raw_response)
+        
+        return name, description, songs
+        
+    except Exception as e:
+        st.error(f"❌ Error generating playlist: {str(e)}")
+        if feature_flags.get("debugging", False):
+            st.write("🔍 Debug: Error details:", str(e))
+        return None, None, None
 
 # ====================================
 # JSON PROCESSING
@@ -232,6 +334,9 @@ def clean_response(raw_response):
     return cleaned_response.replace('\\"', '"').replace('\\n', ' ')
 
 def validate_playlist_data(playlist_data):
+    """
+    Validates the playlist data structure and sets default values
+    """
     if not isinstance(playlist_data, dict):
         raise ValueError("JSON is not a valid object.")
     required_keys = {"name", "description", "songs"}
@@ -244,12 +349,36 @@ def validate_playlist_data(playlist_data):
             raise ValueError("Songs do not contain required fields ('title', 'artist', 'year').")
         if not isinstance(song.get('year', 0), int):
             raise ValueError("Year must be an integer value.")
+        # Set default values for all feature flags
         song.setdefault('is_hidden_gem', False)
         song.setdefault('is_new_music', False)
+        song.setdefault('is_from_film', False)
+        song.setdefault('is_underground', False)
+        song.setdefault('is_band_music', False)
 
 # ====================================
 # SPOTIFY INTEGRATION
 # ====================================
+def get_auth_url(client_id, redirect_uri, scopes):
+    """
+    Generates the Spotify authorization URL
+    Args:
+        client_id: Spotify client ID
+        redirect_uri: URL to redirect after authentication
+        scopes: Required Spotify permissions
+    Returns:
+        Authorization URL string
+    """
+    params = {
+        "client_id": client_id,
+        "response_type": "code",
+        "redirect_uri": redirect_uri,
+        "scope": scopes,
+        "show_dialog": True
+    }
+    auth_url = f"{SPOTIFY_AUTH_URL}?{urlencode(params)}"
+    return auth_url
+
 def search_tracks(token, title, artist, year):
     """
     Searches Spotify for tracks using:
@@ -285,6 +414,60 @@ def search_tracks(token, title, artist, year):
 def handle_spotify_error(response):
     error_message = response.json().get('error', {}).get('message', 'Unknown error')
     st.error(f"❌ Error searching for songs: {error_message}")
+
+def create_playlist(token, user_id, name, description):
+    """
+    Creates a new playlist on Spotify
+    Args:
+        token: Spotify access token
+        user_id: Spotify user ID
+        name: Playlist name
+        description: Playlist description
+    Returns:
+        Response from Spotify API
+    """
+    url = f"{SPOTIFY_API_URL}/users/{user_id}/playlists"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "name": name,
+        "description": description,
+        "public": True
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code != 201:
+            st.error(f"❌ Error creating playlist: {response.json().get('error', {}).get('message', 'Unknown error')}")
+            return {}
+        return response.json()
+    except Exception as e:
+        st.error(f"❌ Error creating playlist: {str(e)}")
+        return {}
+
+def add_tracks_to_playlist(token, playlist_id, track_uris):
+    """
+    Adds tracks to a Spotify playlist
+    Args:
+        token: Spotify access token
+        playlist_id: ID of the playlist
+        track_uris: List of Spotify track URIs
+    """
+    url = f"{SPOTIFY_API_URL}/playlists/{playlist_id}/tracks"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    data = {"uris": track_uris}
+    
+    try:
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code != 201:
+            st.error(f"❌ Error adding tracks: {response.json().get('error', {}).get('message', 'Unknown error')}")
+    except Exception as e:
+        st.error(f"❌ Error adding tracks: {str(e)}")
 
 # ====================================
 # DATA PERSISTENCE
@@ -420,47 +603,67 @@ def handle_spotify_authentication(code):
 # ====================================
 def display_playlist_creation_form():
     """
-    Shows the main interface:
-    - User ID input
-    - Mood selection
-    - Genre selection
-    - Feature toggles
-    - Creation button
+    Shows the main interface with updated feature options
     """
     st.markdown("<h2>🎶 Generate and Create Playlist</h2>", unsafe_allow_html=True)
     user_id = st.text_input("Enter your Spotify user ID", placeholder="Spotify Username", label_visibility="collapsed")
-    mood = st.selectbox("😊 Select your desired mood", config["moods"], label_visibility="collapsed")
-    genres = st.multiselect("🎸 Select music genres", config["genres"], label_visibility="collapsed")
     
-    # Determine available features based on feature flags
-    available_features = ["⭐ Top Songs"]
-    if feature_flags.get("hidden_gems", False):
-        available_features.append("💎 Hidden Gems")
-    if feature_flags.get("new_music", False):
-        available_features.append("🆕 New Music")
-    if feature_flags.get("songs_from_films", False):
-        available_features.append("🎬 Movie Soundtracks")
+    # Create two columns for the radio button and band name input
+    col1, col2 = st.columns([2, 2])
     
-    # Use a single radio button for feature selection, default to "⭐ Top Songs"
-    feature_selection = st.radio(
-        "Select a feature for your playlist:",
-        available_features,
-        index=0  # Default to the first option, "⭐ Top Songs"
-    )
+    with col1:
+        # Updated available features list
+        available_features = ["⭐ Top Songs"]
+        if feature_flags.get("hidden_gems", False):
+            available_features.append("💎 Hidden Gems")
+        if feature_flags.get("new_music", False):
+            available_features.append("🆕 New Music")
+        if feature_flags.get("songs_from_films", False):
+            available_features.append("🎬 Movie Soundtracks")
+        if feature_flags.get("underground_music", False):
+            available_features.append("🎸 Underground Music")
+        if feature_flags.get("band_music", False):
+            available_features.append("🎼 Music of a Band")
+        
+        feature_selection = st.radio(
+            "Select a feature for your playlist:",
+            available_features,
+            index=0
+        )
 
+    # Add band name input field in the second column if band music is selected
+    band_name = None
+    with col2:
+        if feature_selection == "🎼 Music of a Band":
+            band_name = st.text_input("Enter band/artist name:", placeholder="e.g., The Beatles", key="band_name_input")
+    
+    # Show mood selection only if not using band music feature
+    mood = None
+    if feature_selection != "🎼 Music of a Band":
+        mood = st.selectbox("😊 Select your desired mood", config["moods"], label_visibility="collapsed")
+    
+    # Only show genres selection if not using band music feature
+    genres = []
+    if feature_selection != "🎼 Music of a Band":
+        genres = st.multiselect("🎸 Select music genres", config["genres"], label_visibility="collapsed")
+
+    # Rest of the function remains the same
     hidden_gems = feature_selection == "💎 Hidden Gems"
     discover_new = feature_selection == "🆕 New Music"
     songs_from_films = feature_selection == "🎬 Movie Soundtracks"
-
-    # Show debug message if debugging is enabled
-    if feature_flags.get("debugging", False):
-        st.write("🔍 Debug: Feature selected:", feature_selection)
-        st.write("🔍 Debug: Hidden Gems:", hidden_gems)
-        st.write("🔍 Debug: New Music:", discover_new)
-        st.write("🔍 Debug: Movie Soundtracks:", songs_from_films)
+    underground_music = feature_selection == "🎸 Underground Music"
 
     if st.button("🎵 Generate and Create Playlist 🎵"):
-        if user_id and mood and genres:
+        # Modified validation to handle band music case
+        if user_id and (feature_selection == "🎼 Music of a Band" or (mood and genres)):
+            if feature_selection == "🎼 Music of a Band":
+                if not band_name:
+                    st.warning("⚠️ Please enter a band/artist name.")
+                    return
+            elif not genres:
+                st.warning("⚠️ Please select at least one genre.")
+                return
+                
             st.info("🎧 Generating songs, name and description...")
             
             # Check if the token is valid
@@ -470,13 +673,23 @@ def display_playlist_creation_form():
                     st.error("❌ Could not refresh token. Please re-authenticate.")
                     return
             
-            # Start the timer
             start_time = time.time()
             
-            name, description, songs = generate_playlist_details(mood, genres, hidden_gems, discover_new, songs_from_films)
+            name, description, songs = generate_playlist_details(
+                mood if mood else "any",  # Pass "any" if no mood selected for band music
+                genres if genres else ["any"],  # Pass "any" if no genres selected for band music
+                hidden_gems=(feature_selection == "💎 Hidden Gems"),
+                discover_new=(feature_selection == "🆕 New Music"),
+                songs_from_films=(feature_selection == "🎬 Movie Soundtracks"),
+                underground_music=(feature_selection == "🎸 Underground Music"),
+                band_name=band_name if feature_selection == "🎼 Music of a Band" else None
+            )
             handle_playlist_creation(user_id, name, description, songs, start_time, feature_selection)
         else:
-            st.warning("⚠️ Please complete all fields to create the playlist.")
+            if feature_selection == "🎼 Music of a Band":
+                st.warning("⚠️ Please enter your Spotify user ID and a band name.")
+            else:
+                st.warning("⚠️ Please complete all fields to create the playlist.")
 
 def handle_playlist_creation(user_id, name, description, songs, start_time, feature_selection):
     """
@@ -496,7 +709,10 @@ def handle_playlist_creation(user_id, name, description, songs, start_time, feat
         # Get a unique playlist name
         unique_name = generate_unique_playlist_name(name)
         
-        st.markdown("<div style='margin-bottom: 10px'><b>Legend:</b> ⭐ = Top Hit | 💎 = Hidden Gem | 🆕 = New Music | 🎬 = Movie Soundtrack</div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-bottom: 10px'><b>Legend:</b> ⭐ = Top Hit | 💎 = Hidden Gem | 🆕 = New Music | 🎬 = Movie Soundtrack | 🎸 = Underground Music</div>", unsafe_allow_html=True)
+        
+        # Determine if underground music is selected
+        is_underground = feature_selection == "🎸 Underground Music"
         
         track_uris = []
         for idx, song in enumerate(songs, 1):
@@ -516,6 +732,8 @@ def handle_playlist_creation(user_id, name, description, songs, start_time, feat
                     icons.append("🆕")
                 if is_from_film:
                     icons.append("🎬")
+                if is_underground:
+                    icons.append("🎸")
                 if not icons:
                     icons.append("⭐")
                 year = song.get('year', 'N/A')
