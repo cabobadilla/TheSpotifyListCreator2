@@ -144,7 +144,23 @@ def build_system_content(hidden_gems, discover_new, songs_from_films, undergroun
         "If fewer than 15 songs are selected, fill the remaining slots with appropriate tracks from the same genres. "
     )
 
-    # Add feature-specific content while maintaining existing prompts
+    if underground_music:
+        content += (
+            "Focus on creating a playlist with underground and non-mainstream music that truly represents the selected genres. "
+            "The playlist should be a deep dive into the underground scene of the specified genres. "
+            "Requirements for song selection: "
+            "- At least 80% of songs MUST be from independent labels and local music scenes "
+            "- Avoid any songs that have appeared in popular charts or have more than 500,000 plays "
+            "- Focus on artists who maintain artistic integrity over commercial success "
+            "- Include tracks from emerging artists and underground venues "
+            "- Select songs that represent authentic genre roots and underground culture "
+            "- Prioritize releases from small record labels and DIY scenes "
+            "The playlist name should reflect the underground nature (e.g., 'Underground [Genre] Collective', 'Deep [Genre] Underground'). "
+            "The description should emphasize the authentic and underground nature of the selection. "
+            "Each song should be a genuine representation of the genre's underground scene. "
+        )
+
+    # Add other feature-specific content
     if hidden_gems:
         content += (
             "For hidden gems mode: "
@@ -179,17 +195,6 @@ def build_system_content(hidden_gems, discover_new, songs_from_films, undergroun
             "Avoid songs from children's films or animated features, such as those produced by Disney, to ensure a more mature and diverse selection. "
             "These songs should be distinctly marked with the 'is_from_film' flag. "
             "The playlist name and description must highlight that it features unforgettable tracks from beloved films and series, captivating movie enthusiasts and fans of cinematic music."
-        )
-
-    if underground_music:
-        content += (
-            "Focus on creating a playlist with underground and non-mainstream music that truly represents the selected genres. "
-            "Avoid any songs that have appeared in popular charts or have more than 1 million plays. "
-            "At least 60% of songs MUST be from artists from independent labels and local music scenes. "
-            "The songs should be authentic to the genre's roots and underground culture. "
-            "Include tracks from emerging artists and those who maintain artistic integrity over commercial success. "
-            "The playlist name and description should reflect the authentic and underground nature of the selection. "
-            "Each song should be a genuine representation of the genre, avoiding any commercial or pop-influenced versions. "
         )
 
     if band_name:
@@ -230,13 +235,19 @@ def build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films
             f"Include both hits and deep cuts from {band_name}, "
             "along with songs from artists with similar style or influence. "
         )
+    elif underground_music:
+        user_content = (
+            f"Create an underground music playlist focusing on these genres: {', '.join(genres)}. "
+            "Focus on authentic underground artists and genuine representatives of the scene. "
+            "Avoid mainstream or commercially successful tracks. "
+        )
     else:
         user_content = (
             f"Create a playlist for the mood '{mood}' and genres {', '.join(genres)}. "
             f"Make sure the songs align with the mood and genres. "
         )
 
-    # Add feature requirements while maintaining existing prompts
+    # Add feature requirements
     if hidden_gems:
         user_content += "Include 60% hidden gems and lesser-known songs that are not mainstream. "
 
@@ -248,10 +259,9 @@ def build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films
 
     if underground_music:
         user_content += (
-            "Focus exclusively on underground and non-mainstream music. "
-            "Select songs that are authentic to the genre's culture and roots. "
-            "Avoid any commercially successful or widely popular tracks. "
-            "Include artists from independent labels and local scenes. "
+            "Ensure all songs are from the underground scene. "
+            "Focus on independent labels, local scenes, and emerging artists. "
+            "Avoid any commercially successful or mainstream tracks. "
         )
 
     # Always include year requirement
@@ -659,15 +669,13 @@ def display_playlist_creation_form():
         if feature_selection == "🎼 Music of a Band":
             band_name = st.text_input("Enter band/artist name:", placeholder="e.g., The Beatles", key="band_name_input")
     
-    # Show mood selection only if not using band music feature
+    # Show mood selection only if not using band music or underground music feature
     mood = None
-    if feature_selection != "🎼 Music of a Band":
+    if feature_selection not in ["🎼 Music of a Band", "🎸 Underground Music"]:
         mood = st.selectbox("😊 Select your desired mood", config["moods"], label_visibility="collapsed")
     
-    # Only show genres selection if not using band music feature
-    genres = []
-    if feature_selection != "🎼 Music of a Band":
-        genres = st.multiselect("🎸 Select music genres", config["genres"], label_visibility="collapsed")
+    # Always show genres selection
+    genres = st.multiselect("🎸 Select music genres", config["genres"], label_visibility="collapsed")
 
     # Rest of the function remains the same
     hidden_gems = feature_selection == "💎 Hidden Gems"
@@ -676,8 +684,8 @@ def display_playlist_creation_form():
     underground_music = feature_selection == "🎸 Underground Music"
 
     if st.button("🎵 Generate and Create Playlist 🎵"):
-        # Modified validation to handle band music case
-        if user_id and (feature_selection == "🎼 Music of a Band" or (mood and genres)):
+        # Modified validation to handle band music and underground music cases
+        if user_id and ((feature_selection in ["🎼 Music of a Band", "🎸 Underground Music"] and genres) or (mood and genres)):
             if feature_selection == "🎼 Music of a Band":
                 if not band_name:
                     st.warning("⚠️ Please enter a band/artist name.")
@@ -698,8 +706,8 @@ def display_playlist_creation_form():
             start_time = time.time()
             
             name, description, songs = generate_playlist_details(
-                mood if mood else "any",  # Pass "any" if no mood selected for band music
-                genres if genres else ["any"],  # Pass "any" if no genres selected for band music
+                mood if mood else "any",  # Pass "any" if no mood selected for band music or underground music
+                genres,
                 hidden_gems=(feature_selection == "💎 Hidden Gems"),
                 discover_new=(feature_selection == "🆕 New Music"),
                 songs_from_films=(feature_selection == "🎬 Movie Soundtracks"),
@@ -709,7 +717,9 @@ def display_playlist_creation_form():
             handle_playlist_creation(user_id, name, description, songs, start_time, feature_selection)
         else:
             if feature_selection == "🎼 Music of a Band":
-                st.warning("⚠️ Please enter your Spotify user ID and a band name.")
+                st.warning("⚠️ Please enter your Spotify user ID, band name, and select at least one genre.")
+            elif feature_selection == "🎸 Underground Music":
+                st.warning("⚠️ Please enter your Spotify user ID and select at least one genre.")
             else:
                 st.warning("⚠️ Please complete all fields to create the playlist.")
 
