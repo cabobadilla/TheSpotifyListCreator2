@@ -667,11 +667,12 @@ def display_playlist_creation_form():
         if feature_selection == "🎼 Music of a Band":
             band_name = st.text_input("Enter band/artist name:", placeholder="e.g., The Beatles", key="band_name_input")
     
-    # Show mood and genre selection only if not using band music or underground music feature
+    # Show mood and genre selection based on feature
     mood = None
     genres = []
     if feature_selection == "🎸 Underground Music":
-        st.info("🎸 Creating an underground music playlist with a curated selection of authentic underground tracks.")
+        st.info("🎸 Creating an underground music playlist with authentic underground tracks from your selected genres.")
+        genres = st.multiselect("🎸 Select music genres for underground exploration", config["genres"], label_visibility="collapsed")
     elif feature_selection == "🎼 Music of a Band":
         st.info("🎼 Creating a playlist focused on your selected artist/band and related music.")
     else:
@@ -691,7 +692,9 @@ def display_playlist_creation_form():
                     st.warning("⚠️ Please enter a band/artist name.")
                     return
             elif feature_selection == "🎸 Underground Music":
-                pass  # No additional validation needed for underground music
+                if not genres:
+                    st.warning("⚠️ Please select at least one genre for underground music exploration.")
+                    return
             elif not mood or not genres:
                 st.warning("⚠️ Please complete all fields to create the playlist.")
                 return
@@ -707,12 +710,11 @@ def display_playlist_creation_form():
             
             start_time = time.time()
             
-            # For underground music, use predefined genres
+            # For underground music, use selected genres
             if feature_selection == "🎸 Underground Music":
-                underground_genres = ["indie", "alternative", "experimental", "electronic", "punk"]
                 name, description, songs = generate_playlist_details(
                     "any",
-                    underground_genres,
+                    genres,  # Use user-selected genres instead of predefined ones
                     hidden_gems=False,
                     discover_new=False,
                     songs_from_films=False,
