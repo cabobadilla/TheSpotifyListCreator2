@@ -146,18 +146,14 @@ def build_system_content(hidden_gems, discover_new, songs_from_films, undergroun
 
     if underground_music:
         content += (
-            "Focus on creating a playlist with underground and non-mainstream music that truly represents the selected genres. "
-            "The playlist should be a deep dive into the underground scene of the specified genres. "
-            "Requirements for song selection: "
-            "- At least 80% of songs MUST be from independent labels and local music scenes "
-            "- Avoid any songs that have appeared in popular charts or have more than 500,000 plays "
-            "- Focus on artists who maintain artistic integrity over commercial success "
-            "- Include tracks from emerging artists and underground venues "
-            "- Select songs that represent authentic genre roots and underground culture "
-            "- Prioritize releases from small record labels and DIY scenes "
-            "The playlist name should reflect the underground nature (e.g., 'Underground [Genre] Collective', 'Deep [Genre] Underground'). "
-            "The description should emphasize the authentic and underground nature of the selection. "
-            "Each song should be a genuine representation of the genre's underground scene. "
+            "Create a playlist focused on lesser-known and underground music in the selected genres. "
+            "For song selection: "
+            "- Focus on independent artists and small record labels "
+            "- Include emerging artists with under 100,000 monthly listeners "
+            "- Select songs released in the last 30 years "
+            "- Avoid any songs that have appeared in major music charts "
+            "The playlist name should include words like 'Underground' or 'Independent'. "
+            "The description should highlight the underground and independent nature of the songs. "
         )
 
     # Add other feature-specific content
