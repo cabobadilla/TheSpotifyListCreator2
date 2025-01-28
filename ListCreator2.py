@@ -229,15 +229,15 @@ def build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films
     # Set base content based on mode
     if band_name:
         user_content = (
-            f"Create a playlist featuring music from {band_name} and similar artists. "
-            f"Include both hits and deep cuts from {band_name}, "
-            "along with songs from artists with similar style or influence. "
+            f"Create a comprehensive playlist showcasing {band_name}'s musical journey and influence. "
+            f"Include a mix of their iconic hits, deep cuts, and songs from related artists. "
+            "Focus on capturing the essence and evolution of their sound. "
         )
     elif underground_music:
         user_content = (
-            f"Create an underground music playlist focusing on these genres: {', '.join(genres)}. "
-            "Focus on authentic underground artists and genuine representatives of the scene. "
-            "Avoid mainstream or commercially successful tracks. "
+            "Create an underground music playlist that explores the authentic underground scene. "
+            "Focus on independent artists, DIY releases, and emerging talent. "
+            "Avoid any mainstream or commercially successful tracks. "
         )
     else:
         user_content = (
@@ -667,16 +667,16 @@ def display_playlist_creation_form():
         if feature_selection == "🎼 Music of a Band":
             band_name = st.text_input("Enter band/artist name:", placeholder="e.g., The Beatles", key="band_name_input")
     
-    # Show mood selection only if not using band music or underground music feature
+    # Show mood and genre selection only if not using band music or underground music feature
     mood = None
     genres = []
     if feature_selection == "🎸 Underground Music":
         st.info("🎸 Creating an underground music playlist with a curated selection of authentic underground tracks.")
+    elif feature_selection == "🎼 Music of a Band":
+        st.info("🎼 Creating a playlist focused on your selected artist/band and related music.")
     else:
-        if feature_selection != "🎼 Music of a Band":
-            mood = st.selectbox("😊 Select your desired mood", config["moods"], label_visibility="collapsed")
-        if feature_selection != "🎼 Music of a Band":
-            genres = st.multiselect("🎸 Select music genres", config["genres"], label_visibility="collapsed")
+        mood = st.selectbox("😊 Select your desired mood", config["moods"], label_visibility="collapsed")
+        genres = st.multiselect("🎸 Select music genres", config["genres"], label_visibility="collapsed")
 
     # Rest of the function remains the same
     hidden_gems = feature_selection == "💎 Hidden Gems"
@@ -690,10 +690,9 @@ def display_playlist_creation_form():
                 if not band_name:
                     st.warning("⚠️ Please enter a band/artist name.")
                     return
-                if not genres and feature_selection != "🎸 Underground Music":
-                    st.warning("⚠️ Please select at least one genre.")
-                    return
-            elif feature_selection != "🎸 Underground Music" and (not mood or not genres):
+            elif feature_selection == "🎸 Underground Music":
+                pass  # No additional validation needed for underground music
+            elif not mood or not genres:
                 st.warning("⚠️ Please complete all fields to create the playlist.")
                 return
                 
@@ -720,15 +719,25 @@ def display_playlist_creation_form():
                     underground_music=True,
                     band_name=None
                 )
+            elif feature_selection == "🎼 Music of a Band":
+                name, description, songs = generate_playlist_details(
+                    "any",
+                    [],  # Empty genres list for band music
+                    hidden_gems=False,
+                    discover_new=False,
+                    songs_from_films=False,
+                    underground_music=False,
+                    band_name=band_name
+                )
             else:
                 name, description, songs = generate_playlist_details(
-                    mood if mood else "any",
+                    mood,
                     genres,
                     hidden_gems=(feature_selection == "💎 Hidden Gems"),
                     discover_new=(feature_selection == "🆕 New Music"),
                     songs_from_films=(feature_selection == "🎬 Movie Soundtracks"),
                     underground_music=False,
-                    band_name=band_name if feature_selection == "🎼 Music of a Band" else None
+                    band_name=None
                 )
             handle_playlist_creation(user_id, name, description, songs, start_time, feature_selection)
         else:
