@@ -690,15 +690,18 @@ def display_playlist_creation_form():
     """
     st.markdown("<h2>🎶 Generate and Create Playlist</h2>", unsafe_allow_html=True)
     
-    # Create columns for the form layout
-    col1, col2 = st.columns([2, 2])
+    # Initialize selected_model with default value
+    selected_model = "gpt-3.5-turbo"
     
-    with col1:
-        user_id = st.text_input("Enter your Spotify user ID", placeholder="Spotify Username", label_visibility="collapsed")
+    # Create initial column for user ID
+    user_id = st.text_input("Enter your Spotify user ID", placeholder="Spotify Username", label_visibility="collapsed")
     
-    with col2:
-        # Add AI model selection
-        model_options = config.get("ai_models", {})
+    # Show AI model selection only if feature flag is enabled
+    if feature_flags.get("ai_models", False):
+        st.markdown("<h3>Select AI Model</h3>", unsafe_allow_html=True)
+        model_options = feature_flags.get("ai_models_config", {
+            "gpt-3.5-turbo": "GPT-3.5 Turbo"  # Default if not configured
+        })
         selected_model = st.selectbox(
             "Select AI Model",
             options=list(model_options.keys()),
@@ -748,12 +751,7 @@ def display_playlist_creation_form():
         mood = st.selectbox("😊 Select your desired mood", config["moods"], label_visibility="collapsed")
         genres = st.multiselect("🎸 Select music genres", config["genres"], label_visibility="collapsed")
 
-    # Rest of the function remains the same
-    hidden_gems = feature_selection == "💎 Hidden Gems"
-    discover_new = feature_selection == "🆕 New Music"
-    songs_from_films = feature_selection == "🎬 Movie Soundtracks"
-    underground_music = feature_selection == "🎸 Underground Music"
-
+    # Rest of the function remains the same but uses selected_model
     if st.button("🎵 Generate and Create Playlist 🎵"):
         if user_id:
             if feature_selection == "🎼 Music of a Band":
