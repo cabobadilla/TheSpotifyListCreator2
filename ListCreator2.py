@@ -81,14 +81,29 @@ SCOPES = "playlist-modify-private playlist-modify-public"
 def load_config():
     """
     Loads mood and genre options from Streamlit secrets.
-    Returns: Dictionary containing available moods and genres
+    Returns: Dictionary containing available moods, genres, and AI models
     """
     try:
         config = st.secrets["config"]
+        # Add default AI models if not present in config
+        if "ai_models" not in config:
+            config["ai_models"] = {
+                "gpt-3.5-turbo": "GPT-3.5 Turbo",
+                "gpt-4": "GPT-4",
+                "deepseek-chat": "DeepSeek Chat"
+            }
         return config
     except KeyError:
         st.error("❌ Configuration not found in Streamlit secrets.")
-        return {"moods": [], "genres": []}
+        return {
+            "moods": [], 
+            "genres": [],
+            "ai_models": {
+                "gpt-3.5-turbo": "GPT-3.5 Turbo",
+                "gpt-4": "GPT-4",
+                "deepseek-chat": "DeepSeek Chat"
+            }
+        }
 
 config = load_config()
 
@@ -267,34 +282,71 @@ def build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films
 
     return user_content
 
-def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=False, songs_from_films=False, underground_music=False, band_name=None):
+def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=False, songs_from_films=False, underground_music=False, band_name=None, model="gpt-3.5-turbo"):
     """
-    Generates playlist details using ChatGPT based on user preferences.
+    Generates playlist details using selected AI model based on user preferences.
     Returns: Tuple of (playlist_name, description, songs_list)
     """
-    client = openai.OpenAI(api_key=OPENAI_API_KEY)
-    
-    # Build the system and user content for the prompt
-    system_content = build_system_content(hidden_gems, discover_new, songs_from_films, underground_music, band_name)
-    user_content = build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films, underground_music, band_name)
-    
     try:
-        # Make the API call to ChatGPT
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": system_content},
-                {"role": "user", "content": user_content}
-            ],
-            temperature=0.7
-        )
+        if model.startswith("gpt"):
+            # Use OpenAI for GPT models
+            client = openai.OpenAI(api_key=OPENAI_API_KEY)
+            
+            # Build the system and user content for the prompt
+            system_content = build_system_content(hidden_gems, discover_new, songs_from_films, underground_music, band_name)
+            user_content = build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films, underground_music, band_name)
+            
+            # Make the API call to GPT
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_content},
+                    {"role": "user", "content": user_content}
+                ],
+                temperature=0.7
+            )
+            
+            # Get the response content
+            raw_response = response.choices[0].message.content
+            
+        elif model == "deepseek-chat":
+            # Use DeepSeek API
+            DEEPSEEK_API_KEY = st.secrets["DEEPSEEK_API_KEY"]
+            DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
+            
+            # Build the system and user content for the prompt
+            system_content = build_system_content(hidden_gems, discover_new, songs_from_films, underground_music, band_name)
+            user_content = build_user_content(mood, genres, hidden_gems, discover_new, songs_from_films, underground_music, band_name)
+            
+            # Make the API call to DeepSeek
+            response = requests.post(
+                DEEPSEEK_API_URL,
+                headers={
+                    "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "deepseek-chat",
+                    "messages": [
+                        {"role": "system", "content": system_content},
+                        {"role": "user", "content": user_content}
+                    ],
+                    "temperature": 0.7
+                }
+            )
+            
+            if response.status_code != 200:
+                raise Exception(f"DeepSeek API error: {response.text}")
+            
+            # Get the response content
+            raw_response = response.json()["choices"][0]["message"]["content"]
         
-        # Get the response content
-        raw_response = response.choices[0].message.content
+        else:
+            raise ValueError(f"Unsupported model: {model}")
         
         # Process and validate the response
         if feature_flags.get("debugging", False):
-            st.write("🔍 Debug: Raw GPT Response:", raw_response)
+            st.write(f"🔍 Debug: Raw {model} Response:", raw_response)
         
         # Clean and validate the JSON response
         name, description, songs = validate_and_clean_json(raw_response)
@@ -302,7 +354,7 @@ def generate_playlist_details(mood, genres, hidden_gems=False, discover_new=Fals
         return name, description, songs
         
     except Exception as e:
-        st.error(f"❌ Error generating playlist: {str(e)}")
+        st.error(f"❌ Error generating playlist with {model}: {str(e)}")
         if feature_flags.get("debugging", False):
             st.write("🔍 Debug: Error details:", str(e))
         return None, None, None
@@ -637,7 +689,23 @@ def display_playlist_creation_form():
     Shows the main interface with updated feature options
     """
     st.markdown("<h2>🎶 Generate and Create Playlist</h2>", unsafe_allow_html=True)
-    user_id = st.text_input("Enter your Spotify user ID", placeholder="Spotify Username", label_visibility="collapsed")
+    
+    # Create columns for the form layout
+    col1, col2 = st.columns([2, 2])
+    
+    with col1:
+        user_id = st.text_input("Enter your Spotify user ID", placeholder="Spotify Username", label_visibility="collapsed")
+    
+    with col2:
+        # Add AI model selection
+        model_options = config.get("ai_models", {})
+        selected_model = st.selectbox(
+            "Select AI Model",
+            options=list(model_options.keys()),
+            format_func=lambda x: model_options[x],
+            index=0,
+            help="Choose the AI model to generate your playlist"
+        )
     
     # Create two columns for the radio button and band name input
     col1, col2 = st.columns([2, 2])
@@ -711,26 +779,28 @@ def display_playlist_creation_form():
             
             start_time = time.time()
             
-            # For underground music, use selected genres
+            # Pass the selected model to generate_playlist_details
             if feature_selection == "🎸 Underground Music":
                 name, description, songs = generate_playlist_details(
                     "any",
-                    genres,  # Use user-selected genres instead of predefined ones
+                    genres,
                     hidden_gems=False,
                     discover_new=False,
                     songs_from_films=False,
                     underground_music=True,
-                    band_name=None
+                    band_name=None,
+                    model=selected_model
                 )
             elif feature_selection == "🎼 Music of a Band":
                 name, description, songs = generate_playlist_details(
                     "any",
-                    [],  # Empty genres list for band music
+                    [],
                     hidden_gems=False,
                     discover_new=False,
                     songs_from_films=False,
                     underground_music=False,
-                    band_name=band_name
+                    band_name=band_name,
+                    model=selected_model
                 )
             else:
                 name, description, songs = generate_playlist_details(
@@ -740,7 +810,8 @@ def display_playlist_creation_form():
                     discover_new=(feature_selection == "🆕 New Music"),
                     songs_from_films=(feature_selection == "🎬 Movie Soundtracks"),
                     underground_music=False,
-                    band_name=None
+                    band_name=None,
+                    model=selected_model
                 )
             handle_playlist_creation(user_id, name, description, songs, start_time, feature_selection)
         else:
